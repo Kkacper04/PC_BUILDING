@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import json
 import time
 import re
+from scraper.loader import setup_database, save_disc_to_db
 
 BASE_URL = "***REMOVED***"
 HEADERS = {
@@ -154,6 +155,9 @@ def main():
     print ("SSD-SCRAPER")
     print()
 
+    setup_database()
+
+
     products = scrape_categories(max_pages=1)
 
     if not products:
@@ -162,6 +166,8 @@ def main():
     print()
   
     print("Extracting detailed specs for the first 7 products...")
+
+    ready_to_save = []
     
    
     for i, p in enumerate(products[:7], 1):
@@ -169,12 +175,15 @@ def main():
         print(f"\n{i:>3}.  {price:>10}   {p['name']}")
         
         spec = get_spec(p['url'])
-        
+        p.update(spec)
+        ready_to_save.append(p)
+
         print("      [Normalized specifications]:")
         for key, value in spec.items():
             print(f"        - {key}: {value}")
             
         time.sleep(REQUEST_DELAY)
+    save_disc_to_db(ready_to_save)
 
     print("\nEND")
 

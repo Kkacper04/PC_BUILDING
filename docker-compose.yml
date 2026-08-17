@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: pc_builder_db
+    restart: always
+    environment:
+      POSTGRES_USER: pc_builder
+      POSTGRES_PASSWORD: pc_builder_password
+      POSTGRES_DB: pc_builder
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
