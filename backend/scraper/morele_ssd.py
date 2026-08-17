@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import time
+import re
 
 BASE_URL = "***REMOVED***"
 HEADERS = {
@@ -83,36 +84,99 @@ def scrape_categories(max_pages =2):
                 time.sleep(REQUEST_DELAY)
 
     return all_products
+def norm_data(data):
+    convert = {}
+    capacity_txt = data.get("Pojemność dysku")
+    if capacity_txt:
+        match = re.search(r'(\d+)\s*(TB|GB)', capacity_txt)
+        if match:
+            value = int(match.group(1))
+            unit = match.group(2)
+
+            if unit == "TB":
+                convert["capacity_gb"] = value * 1000
+            else:
+                convert["capacity_gb"] = value
+    
+
+    read_speed_txt = data.get("Szybkość odczytu")
+    if read_speed_txt:
+       match = re.search(r'(\d+)', read_speed_txt)
+       if match:
+             convert["read_speed_mbps"] = int(match.group(1))
+    
+
+    write_speed_txt = data.get("Szybkość zapisu")
+    if write_speed_txt:
+        match = re.search(r'(\d+)', write_speed_txt)
+        if match:
+            convert["write_speed_mbps"] = int(match.group(1))
+    
+    format_txt = data.get("Format dysku")
+    if format_txt:
+       format_txt_lower = format_txt.lower()
+       if "m.2" in format_txt_lower:
+            convert["form_factor"] = "M.2"
+       elif "2.5" in format_txt_lower:
+            convert["form_factor"] = "2.5-inch"
+       else:
+            convert["form_factor"] = "Inny"
+    return convert
+
+
+
+
+def get_spec(url):
+    soup = download_data(url)
+    if not soup:
+        return {}
+        
+    raw_data = {}
+    table = soup.find("div", class_="product-specification__table")
+
+    if table:
+        rows = table.find_all("div", class_="specification__row")
+
+        for row in rows:
+            el_name = row.find("span", class_="specification__name")
+            el_val = row.find("span", class_="specification__value")
+
+            if el_name and el_val:
+                key= el_name.text.strip()
+                value = el_val.text.strip()
+                raw_data[key] = value
+
+    return norm_data(raw_data)
+
+
 
 def main():
     print ("SSD-SCRAPER")
     print()
 
-    products = scrape_categories(max_pages=2)
+    products = scrape_categories(max_pages=1)
 
     if not products:
         print("\nNo products found")
         return
     print()
   
-    print(f"  {'#':>3}   {'CENA':>10}   Name")
+    print("Extracting detailed specs for the first 7 products...")
+    
    
-    for i, p in enumerate(products, 1):
+    for i, p in enumerate(products[:7], 1):
         price = f"{p['price']} {p['currency']}"
-        print(f"  {i:>3}.  {price:>10}   {p['name']}")
-    print("-" * 70)
-    print(f"\n  total: {len(products)} products")
-    prices = []
-    for p in products:
-        try:
-            prices.append(float(p["price"]))
-        except ValueError:
-            pass
-    if prices:
-        print(f"  Cheapest:    {min(prices):>10.2f} PLN")
-        print(f"  Most expensive:   {max(prices):>10.2f} PLN")
-        print(f"  Average price: {sum(prices) / len(prices):>10.2f} PLN")
-    print()
+        print(f"\n{i:>3}.  {price:>10}   {p['name']}")
+        
+        spec = get_spec(p['url'])
+        
+        print("      [Normalized specifications]:")
+        for key, value in spec.items():
+            print(f"        - {key}: {value}")
+            
+        time.sleep(REQUEST_DELAY)
+
+    print("\nEND")
 
 if __name__ == "__main__":
     main()
