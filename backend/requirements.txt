@@ -1,0 +1,7 @@
+# PC Builder – Backend Dependencies
+sqlalchemy>=2.0,<2.1
+psycopg2-binary>=2.9
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.0
+python-dotenv>=1.0
