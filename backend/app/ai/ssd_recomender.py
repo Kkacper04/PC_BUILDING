@@ -42,7 +42,10 @@ def recommend_best_disc(db: Session):
     print(f"Speed: {best_disc.read_speed_mbps} MB/s")
     print(f"Score: {points[winner_idx].item():.4f} / 1.000")
     
-    return best_disc
+    result_dict = {column.name: getattr(best_disc, column.name) for column in best_disc.__table__.columns}
+    result_dict["value_score"] = round(points[winner_idx].item(), 4)
+    
+    return result_dict
 
 
 if __name__ == "__main__":
