@@ -32,7 +32,7 @@ def recommend_best_disc(db: Session):
     #lower price means more points
     points = (1.0 - norm_price) * 0.5 + (norm_capacity) * 0.3 + (norm_read_speed) * 0.2
 
-    winner_idx = torch.argmax(points).item()
+    winner_idx = int(torch.argmax(points).item())
     best_disc = discs[winner_idx]
 
     print("RECOMMENDED SSD ")
