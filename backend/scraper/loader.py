@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.db.base import get_engine, Base
 from app.models.components import Storage,CPU
 from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType
+from app.models.components import Storage, CPU, Motherboard
+from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration
 
 def setup_database():
     print("[DB] Creating tables")
@@ -108,3 +110,67 @@ def save_cpu_to_db(cpu_list):
                 saved += 1
         session.commit()
         print(f"[DB] Added CPUs: {saved}, Updated prices: {updated}")
+
+def save_mobo_to_db(mobo_list):
+    engine = get_engine()
+    with Session(engine) as session:
+        saved = 0
+        updated = 0
+        for data in mobo_list: 
+            existing_mobo = session.query(Motherboard).filter(Motherboard.name == data["name"]).first()
+
+            try:
+                price = Decimal(data.get("price",0))
+            except Exception:
+                price = Decimal("0.00")
+
+            if existing_mobo:
+                existing_mobo.price = price
+                updated+=1
+            else:
+                raw_socket = str(data.get("socket", "")).upper()
+                if "AM4" in raw_socket: db_socket = SocketType.AM4
+                elif "AM5" in raw_socket: db_socket = SocketType.AM5
+                elif "1700" in raw_socket: db_socket = SocketType.LGA1700
+                else: db_socket = SocketType.AM5 
+                
+                raw_ddr = str(data.get("ddr_generation", "")).upper()
+                db_ddr = DDRGeneration.DDR4 if "DDR4" in raw_ddr else DDRGeneration.DDR5
+
+                # mapping format (ATX, uATX itd)
+                raw_form = str(data.get("form_factor", "")).upper()
+                if "MICRO" in raw_form or "UATX" in raw_form or "MATX" in raw_form:
+                    db_form = FormFactor.MICRO_ATX
+                elif "MINI" in raw_form or "ITX" in raw_form:
+                    db_form = FormFactor.MINI_ITX
+                elif "E-ATX" in raw_form or "EXTENDED" in raw_form:
+                    db_form = FormFactor.E_ATX
+                else:
+                    db_form = FormFactor.ATX
+
+                raw_chipset = str(data.get("chipset", "")).upper()
+                db_chipset = ChipsetFamily.B650 #default
+
+                for chipset_enum in ChipsetFamily:
+                    if chipset_enum.value.upper() in raw_chipset:
+                        db_chipset = chipset_enum
+                        break
+
+                new_mobo = Motherboard(
+                     name=data["name"],
+                    brand="Unknown",
+                    model="Unknown",
+                    price=price,
+                    socket=db_socket,
+                    chipset=db_chipset,
+                    form_factor=db_form,
+                    ddr_generation=db_ddr,
+                    ram_slots=data.get("ram_slots", 4) or 4,
+                    max_ram_speed_mhz=data.get("max_ram_speed_mhz", 4800) or 4800,
+                    max_ram_capacity_gb=data.get("max_ram_capacity_gb", 128) or 128
+                )
+                session.add(new_mobo)
+                saved+=1
+
+        session.commit()
+        print(f"[DB] Added MOBOs: {saved}, Updated prices: {updated}")
