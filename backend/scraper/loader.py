@@ -360,6 +360,17 @@ def save_case_to_db(case_list):
                     existing.brand = data["brand"]
                 if existing.model == "Unknown" and model_val != "Unknown":
                     existing.model = model_val
+                
+                existing.height_mm = data.get("height_mm", existing.height_mm)
+                existing.width_mm = data.get("width_mm", existing.width_mm)
+                existing.length_mm = data.get("length_mm", existing.length_mm)
+                existing.weight_kg = data.get("weight_kg", existing.weight_kg)
+                if "front_io_usb_c" in data:
+                    existing.front_io_usb_c = data["front_io_usb_c"]
+                if "drive_bays_35" in data:
+                    existing.drive_bays_35 = data["drive_bays_35"]
+                if "drive_bays_25" in data:
+                    existing.drive_bays_25 = data["drive_bays_25"]
                 updated += 1
             else:
                 new_case = Case(
@@ -372,6 +383,11 @@ def save_case_to_db(case_list):
                     max_cpu_cooler_height_mm=data.get("max_cpu_cooler_height_mm", 160),
                     drive_bays_35=data.get("drive_bays_35", 2),
                     drive_bays_25=data.get("drive_bays_25", 2),
+                    height_mm=data.get("height_mm"),
+                    width_mm=data.get("width_mm"),
+                    length_mm=data.get("length_mm"),
+                    weight_kg=data.get("weight_kg"),
+                    front_io_usb_c=data.get("front_io_usb_c", False),
                     included_fans=0,
                     max_fan_slots=6,
                     has_tempered_glass=data.get("has_tempered_glass", False),

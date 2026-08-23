@@ -5,9 +5,7 @@ from typing import List, Dict, Any
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 import logging
-from app.db.base import get_engine
-from sqlalchemy.orm import Session
-from app.models.components import PSU
+
 from scraper.loader import save_psu_to_db
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

@@ -5,9 +5,7 @@ from typing import List, Dict, Any
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 import logging
-from app.db.base import get_engine
-from sqlalchemy.orm import Session
-from app.models.components import Case
+
 from scraper.loader import save_case_to_db
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -67,19 +65,46 @@ def norm_data(raw_data: dict) -> dict:
     
     clean["case_type"] = raw_data.get("Typ obudowy", "Midi Tower").strip()
     clean["psu_form_factor"] = raw_data.get("Zasilacz", "Brak zasilacza").strip()
-    clean["has_tempered_glass"] = "Szkło" in raw_data.get("Okno", "") or "Tak" in raw_data.get("Okno", "")
+    
+    okno = raw_data.get("Okno", "")
+    clean["has_tempered_glass"] = "Szkło" in okno or "Tak" in okno or "oknem" in okno
 
     gpu_txt = raw_data.get("Maksymalna długość karty graficznej [cm]", "")
-    match_gpu = re.search(r'\d+', gpu_txt)
+    match_gpu = re.search(r'[\d\.]+', gpu_txt.replace(',', '.'))
     clean["max_gpu_length_mm"] = int(float(match_gpu.group()) * 10) if match_gpu else 300
     
     cpu_txt = raw_data.get("Maksymalna wysokość układu chłodzenia CPU [cm]", "")
-    match_cpu = re.search(r'\d+', cpu_txt)
+    match_cpu = re.search(r'[\d\.]+', cpu_txt.replace(',', '.'))
     clean["max_cpu_cooler_height_mm"] = int(float(match_cpu.group()) * 10) if match_cpu else 160
     
-    clean["drive_bays_35"] = 2
-    clean["drive_bays_25"] = 2
+    bays_35 = raw_data.get("Wnęki wewnętrzne 3.5 cala", "")
+    match_35 = re.search(r'\d+', bays_35)
+    clean["drive_bays_35"] = int(match_35.group()) if match_35 else 2
     
+    bays_25 = raw_data.get("Wnęki wewnętrzne 2.5 cala", "")
+    match_25 = re.search(r'\d+', bays_25)
+    clean["drive_bays_25"] = int(match_25.group()) if match_25 else 2
+
+    # Wymiary fizyczne
+    h_txt = raw_data.get("Wysokość [cm]", "")
+    m_h = re.search(r'[\d\.]+', h_txt.replace(',', '.'))
+    clean["height_mm"] = int(float(m_h.group()) * 10) if m_h else None
+
+    w_txt = raw_data.get("Szerokość [cm]", "")
+    m_w = re.search(r'[\d\.]+', w_txt.replace(',', '.'))
+    clean["width_mm"] = int(float(m_w.group()) * 10) if m_w else None
+
+    l_txt = raw_data.get("Głębokość [cm]", "")
+    m_l = re.search(r'[\d\.]+', l_txt.replace(',', '.'))
+    clean["length_mm"] = int(float(m_l.group()) * 10) if m_l else None
+    
+    wg_txt = raw_data.get("Waga [kg]", "")
+    m_wg = re.search(r'[\d\.]+', wg_txt.replace(',', '.'))
+    clean["weight_kg"] = float(m_wg.group()) if m_wg else None
+    
+    usb_c = raw_data.get("USB Typ-C", "Brak")
+    clean["front_io_usb_c"] = "Brak" not in usb_c and "Nie" not in usb_c
+
     return clean    
 
 def get_spec(url):

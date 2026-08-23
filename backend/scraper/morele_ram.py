@@ -122,13 +122,15 @@ def main():
         return
     ram_list = parse_ram_json_ld(raw_html)
 
-    for ram in ram_list[:4]:
+    ready_ram = []
+    for ram in ram_list[:10]:
         url= ram.get("url")
         if not url:
             continue
 
         spec = get_spec(url)
         ram.update(spec)
+        ready_ram.append(ram)
 
         print(f"Nazwa: {ram.get('name')}")
         print(f"Typ: {ram.get('ddr_generation')} | {ram.get('total_capacity_gb')}GB ({ram.get('modules')}x{ram.get('capacity_per_module_gb')}GB)")
@@ -136,8 +138,8 @@ def main():
 
         time.sleep(1.5)
 
-    logger.info(f"Successfully extracted {len(ram_list)} rams to db ")
-    save_ram_to_db(ram_list[:4])
+    logger.info(f"Successfully extracted {len(ready_ram)} rams to db ")
+    save_ram_to_db(ready_ram)
 
 if __name__ == "__main__":
     main()
