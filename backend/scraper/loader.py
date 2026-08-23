@@ -1,15 +1,16 @@
 from dotenv import load_dotenv
 load_dotenv()
-
+import re
 from decimal import Decimal
 from sqlalchemy.orm import Session
 import logging
 
 from app.db.base import get_engine, Base
-from app.models.components import Storage, CPU, Motherboard, GPU, RAM
+from app.models.components import Storage, CPU, Motherboard, GPU, RAM, PSU, Case
 from app.models.enums import (
     StorageType, StorageFormFactor, StorageInterface, SocketType, 
-    ChipsetFamily, FormFactor, DDRGeneration, VRAMType
+    ChipsetFamily, FormFactor, DDRGeneration, VRAMType,
+    PSUFormFactor, EfficiencyRating, ModularType
 )
 
 logger = logging.getLogger(__name__)
@@ -276,4 +277,110 @@ def save_ram_to_db(ram_list):
                 
         session.commit()
         print(f"[DB] Added RAM: {saved}, Updated prices: {updated}")
+
+
+def save_psu_to_db(psu_list):
+    engine = get_engine()
+    with Session(engine) as session:
+        saved = 0
+        updated = 0
+        
+        for data in psu_list:
+            existing = session.query(PSU).filter(PSU.name == data["name"]).first()
+            price = safe_parse_price(data.get("price"), data["name"])
+            
+            model_val = data.get("model", "Unknown")
+            if existing:
+                existing.price = price
+                if existing.brand == "Unknown" and "brand" in data:
+                    existing.brand = data["brand"]
+                if existing.model == "Unknown" and model_val != "Unknown":
+                    existing.model = model_val
+                updated += 1
+            else:
+                raw_eff = str(data.get("efficiency_rating", "")).upper()
+                if "TITANIUM" in raw_eff: db_eff = EfficiencyRating.TITANIUM
+                elif "PLATINUM" in raw_eff: db_eff = EfficiencyRating.PLATINUM
+                elif "GOLD" in raw_eff: db_eff = EfficiencyRating.GOLD
+                elif "SILVER" in raw_eff: db_eff = EfficiencyRating.SILVER
+                elif "BRONZE" in raw_eff: db_eff = EfficiencyRating.BRONZE
+                else: db_eff = EfficiencyRating.PLUS_80
+                
+                raw_mod = str(data.get("modular_type", "")).upper()
+                if "PEŁNI" in raw_mod or "FULLY" in raw_mod: db_mod = ModularType.FULLY_MODULAR
+                elif "SEMI" in raw_mod or "CZĘŚCIOWO" in raw_mod: db_mod = ModularType.SEMI_MODULAR
+                else: db_mod = ModularType.NON_MODULAR
+                
+                raw_form = str(data.get("form_factor", "")).upper()
+                if "SFX-L" in raw_form: db_form = PSUFormFactor.SFX_L
+                elif "SFX" in raw_form: db_form = PSUFormFactor.SFX
+                else: db_form = PSUFormFactor.ATX
+                
+                def parse_pin(val):
+                    if not val or val.lower() == "nie" or val.lower() == "brak": return 0
+                    match = re.search(r'\d+', str(val))
+                    return int(match.group()) if match else 0
+                
+                new_psu = PSU(
+                    name=data["name"],
+                    brand=data.get("brand", "Unknown"), 
+                    model=model_val,
+                    price=price,
+                    wattage=data.get("wattage", 500),
+                    efficiency_rating=db_eff,
+                    modular_type=db_mod,
+                    form_factor=db_form,
+                    eps_8pin_connectors=parse_pin(data.get("eps_8pin")),
+                    pcie_8pin_connectors=parse_pin(data.get("pcie_8pin")),
+                    pcie_6pin_connectors=parse_pin(data.get("pcie_6pin")),
+                    has_12vhpwr=data.get("has_12vhpwr", False),
+                    num_12vhpwr=1 if data.get("has_12vhpwr", False) else 0
+                )
+                session.add(new_psu)
+                saved += 1
+                
+        session.commit()
+        print(f"[DB] Added PSUs: {saved}, Updated prices: {updated}")
+
+
+def save_case_to_db(case_list):
+    engine = get_engine()
+    with Session(engine) as session:
+        saved = 0
+        updated = 0
+        
+        for data in case_list:
+            existing = session.query(Case).filter(Case.name == data["name"]).first()
+            price = safe_parse_price(data.get("price"), data["name"])
+            
+            model_val = data.get("model", "Unknown")
+            if existing:
+                existing.price = price
+                if existing.brand == "Unknown" and "brand" in data:
+                    existing.brand = data["brand"]
+                if existing.model == "Unknown" and model_val != "Unknown":
+                    existing.model = model_val
+                updated += 1
+            else:
+                new_case = Case(
+                    name=data["name"],
+                    brand=data.get("brand", "Unknown"), 
+                    model=model_val,
+                    price=price,
+                    case_type=data.get("case_type", "Midi Tower"),
+                    max_gpu_length_mm=data.get("max_gpu_length_mm", 300),
+                    max_cpu_cooler_height_mm=data.get("max_cpu_cooler_height_mm", 160),
+                    drive_bays_35=data.get("drive_bays_35", 2),
+                    drive_bays_25=data.get("drive_bays_25", 2),
+                    included_fans=0,
+                    max_fan_slots=6,
+                    has_tempered_glass=data.get("has_tempered_glass", False),
+                    psu_form_factor=PSUFormFactor.ATX
+                )
+                session.add(new_case)
+                saved += 1
+                
+        session.commit()
+        print(f"[DB] Added Cases: {saved}, Updated prices: {updated}")
+
 
