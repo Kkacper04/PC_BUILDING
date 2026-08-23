@@ -79,6 +79,7 @@ def parse_cpu_json_ld(html_content: str) -> List[Dict[str, Any]]:
 
 def norm_data(raw_data: dict) -> dict:
     clean = {}
+    clean["brand"] = raw_data.get("Producent", "Unknown").strip()
     clean["socket"] = raw_data.get("Gniazdo procesora", "Unknown").strip()
     cores_txt =  raw_data.get("Liczba rdzeni")
     if cores_txt and cores_txt.isdigit():

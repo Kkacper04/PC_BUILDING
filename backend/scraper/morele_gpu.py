@@ -50,6 +50,7 @@ def parse_gpu_json_ld(html_content: str) -> List[Dict[str, Any]]:
 
 def norm_data(raw_data: dict) -> dict:
     clean = {}
+    clean["brand"] = raw_data.get("Producent", "Unknown").strip()
     chipset = raw_data.get("Chipset karty graficznej", "").upper()
     if "RTX" in chipset or "GTX" in chipset or "NVIDIA" in chipset:
         clean["chip_manufacturer"] = "NVIDIA"

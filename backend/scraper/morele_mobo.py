@@ -47,6 +47,7 @@ def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
     return products
 def norm_data(raw_data: dict) -> dict:
     clean = {}
+    clean["brand"] = raw_data.get("Producent", "Unknown").strip()
     clean["socket"] = raw_data.get("Gniazdo procesora", "Unknown").strip()
     clean["chipset"] = raw_data.get("Chipset płyty", "Unknown").strip()
     clean["form_factor"] = raw_data.get("Standard płyty", "Unknown").strip()

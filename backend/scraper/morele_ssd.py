@@ -1,112 +1,69 @@
-import requests 
-from bs4 import BeautifulSoup
 import json
-import time
+import logging
+from typing import Dict, List, Optional, Any
 import re
+import time
+from bs4 import BeautifulSoup
+
 from scraper.loader import setup_database, save_disc_to_db
+from scraper.morele_cpu import fetch_rendered_html
 
-BASE_URL = "***REMOVED***"
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    )
-}
-REQUEST_DELAY = 1.5
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
-def download_data(url):
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
+URL_SSD = "***REMOVED***"
 
-        if response.status_code!= 200:
-            print(f"Error : {response.status_code} for:  {url}")
-            return None
-
-        soup = BeautifulSoup(response.text, "lxml")
-        return soup
-
-    except requests.RequestException as e:
-        print(f"Error, Not possible to download {url}: {e}")
-        return None
-
-
-def get_product(soup):
+def parse_ssd_json_ld(html_content: str) -> List[Dict[str, Any]]:
+    soup = BeautifulSoup(html_content, "lxml")
+    json_scripts = soup.find_all("script", type="application/ld+json")
+    
     products = []
-
-    scripts_json = soup.find_all("script", type="application/ld+json")
-    for script in scripts_json:
+    
+    for script in json_scripts:
         if not script.string:
             continue
+            
         try:
             data = json.loads(script.string)
+            if data.get("@type") == "ItemList":
+                items = data.get("itemListElement", [])
+                for element in items:
+                    item_data = element.get("item", {})
+                    
+                    name = item_data.get("name", "Unknown SSD")
+                    price = item_data.get("offers", {}).get("price", "0")
+                    url = item_data.get("url")
+                    
+                    products.append({"name": name, "price": price, "url": url})
+                
+                break 
+                
         except json.JSONDecodeError:
+            logger.debug("Failed to decode JSON block, skipping...")
             continue
-
-        if data.get("@type") != "ItemList":
-            continue
-
-        for element in data.get("itemListElement", []):
-            product = element.get("item", {})
-            offer = product.get("offers",{})
-            images = product.get("image",[])
-            image = images[0] if images else None
-
-            products.append({
-                "name": product.get("name", "Brak nazwy"),
-                "price": offer.get("price", "0"),
-                "currency": offer.get("priceCurrency", "PLN"),
-                "url": product.get("url", ""),
-                "image": image,
-            })
-        break
-    if not products:
-        print("No product in  JSON-LD on this website.")
+            
     return products
 
-def scrape_categories(max_pages =2):
-    all_products = []
-    for page_number in range (1,max_pages +1):
-        url = f"{BASE_URL}{page_number}/"
-        print(f"Downloading site {page_number}: {url}")
-
-        soup = download_data(url)
-        if soup is None:
-            print("downloading failure")
-            break
-        products = get_product(soup)
-        if not products:
-            print("Not available products on website")
-            break
-
-        all_products.extend(products)
-        print("found {len(products)} products, total ammount : {len(all_products)}")
-        if page_number < max_pages:
-                time.sleep(REQUEST_DELAY)
-
-    return all_products
 def norm_data(data):
     convert = {}
+    convert["brand"] = data.get("Producent", "Unknown").strip()
     capacity_txt = data.get("Pojemność dysku")
     if capacity_txt:
         match = re.search(r'(\d+)\s*(TB|GB)', capacity_txt)
         if match:
             value = int(match.group(1))
             unit = match.group(2)
-
             if unit == "TB":
                 convert["capacity_gb"] = value * 1000
             else:
                 convert["capacity_gb"] = value
     
-
     read_speed_txt = data.get("Szybkość odczytu")
     if read_speed_txt:
        match = re.search(r'(\d+)', read_speed_txt)
        if match:
              convert["read_speed_mbps"] = int(match.group(1))
     
-
     write_speed_txt = data.get("Szybkość zapisu")
     if write_speed_txt:
         match = re.search(r'(\d+)', write_speed_txt)
@@ -124,20 +81,18 @@ def norm_data(data):
             convert["form_factor"] = "Inny"
     return convert
 
-
-
-
 def get_spec(url):
-    soup = download_data(url)
-    if not soup:
+    html_content = fetch_rendered_html(url)
+    
+    if not html_content:
         return {}
-        
+            
+    soup = BeautifulSoup(html_content, "lxml")
     raw_data = {}
     table = soup.find("div", class_="product-specification__table")
 
     if table:
         rows = table.find_all("div", class_="specification__row")
-
         for row in rows:
             el_name = row.find("span", class_="specification__name")
             el_val = row.find("span", class_="specification__value")
@@ -147,45 +102,41 @@ def get_spec(url):
                 value = el_val.text.strip()
                 raw_data[key] = value
 
-    return norm_data(raw_data)
-
+        return norm_data(raw_data)
+    return {}
 
 
 def main():
-    print ("SSD-SCRAPER")
-    print()
-
-    setup_database()
-
-
-    products = scrape_categories(max_pages=1)
-
-    if not products:
-        print("\nNo products found")
+    logger.info("Starting SSD extraction routine via Playwright")
+    
+    raw_html = fetch_rendered_html(URL_SSD)
+    if not raw_html:
+        logger.warning("Failed to retrieve HTML content. Exiting.")
         return
-    print()
-  
-    print("Extracting detailed specs for the first 7 products...")
-
+        
+    ssd_list = parse_ssd_json_ld(raw_html)
     ready_to_save = []
     
-   
-    for i, p in enumerate(products[:7], 1):
-        price = f"{p['price']} {p['currency']}"
-        print(f"\n{i:>3}.  {price:>10}   {p['name']}")
+    for ssd in ssd_list[:7]:
+        logger.info(f"Pobieram: {ssd['name']}")
         
-        spec = get_spec(p['url'])
-        p.update(spec)
-        ready_to_save.append(p)
-
-        print("      [Normalized specifications]:")
-        for key, value in spec.items():
-            print(f"        - {key}: {value}")
+        url = ssd.get("url")
+        if not url:
+            continue
             
-        time.sleep(REQUEST_DELAY)
-    save_disc_to_db(ready_to_save)
+        spec = get_spec(url)
+        ssd.update(spec)
+        ready_to_save.append(ssd)
+        
+        print("\n=== ZNALEZIONY SSD ===")
+        print(f"Nazwa: {ssd.get('name')}")
+        print(f"Pojemność: {ssd.get('capacity_gb')} GB | Format: {ssd.get('form_factor')}")
+        print(f"Prędkość (Odczyt/Zapis): {ssd.get('read_speed_mbps', 0)} / {ssd.get('write_speed_mbps', 0)} MB/s")
 
-    print("\nEND")
+        time.sleep(1.5)
+        
+    logger.info("Zakończono pobieranie SSD. Zapisuję do bazy...")
+    save_disc_to_db(ready_to_save)
 
 if __name__ == "__main__":
     main()

@@ -3,14 +3,28 @@ load_dotenv()
 
 from decimal import Decimal
 from sqlalchemy.orm import Session
+import logging
+
 from app.db.base import get_engine, Base
-from app.models.components import Storage,CPU
-from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType
-from app.models.components import Storage, CPU, Motherboard
-from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration
-from app.models.components import Storage, CPU, Motherboard, GPU
-from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration, VRAMType
 from app.models.components import Storage, CPU, Motherboard, GPU, RAM
+from app.models.enums import (
+    StorageType, StorageFormFactor, StorageInterface, SocketType, 
+    ChipsetFamily, FormFactor, DDRGeneration, VRAMType
+)
+
+logger = logging.getLogger(__name__)
+
+from typing import Any
+
+def safe_parse_price(price_raw: Any, product_name: str) -> Decimal:
+    if not price_raw:
+        return Decimal("0.00")
+    try:
+        clean_str = str(price_raw).replace(" ", "").replace("zł", "").replace("PLN", "").replace(",", ".")
+        return Decimal(clean_str)
+    except Exception as e:
+        logger.warning(f"Błąd parsowania ceny dla '{product_name}'. Otrzymano: '{price_raw}'. Ustawiam 0.00. Błąd: {e}")
+        return Decimal("0.00")
 
 def setup_database():
     print("[DB] Creating tables")
@@ -25,9 +39,7 @@ def save_disc_to_db(disc_list):
         updated = 0
         
         for disc in disc_list:
-          
             existing_ssd = session.query(Storage).filter(Storage.name == disc["name"]).first()
-            
             
             if disc.get("form_factor") == "M.2":
                 form_factor = StorageFormFactor.M2_2280
@@ -40,10 +52,8 @@ def save_disc_to_db(disc_list):
             else:
                 storage_type = StorageType.SATA_SSD
                 interface = StorageInterface.SATA3
-            try:
-                price = Decimal(disc.get("price", 0))
-            except Exception:
-                price = Decimal("0.00")
+                
+            price = safe_parse_price(disc.get("price"), disc["name"])
 
             if existing_ssd:
                 existing_ssd.price = price
@@ -51,7 +61,7 @@ def save_disc_to_db(disc_list):
             else:
                 new_disc = Storage(
                     name=disc["name"],
-                    brand="Unknown", 
+                    brand=disc.get("brand", "Unknown"), 
                     model="Unknown",
                     price=price,
                     capacity_gb=disc.get("capacity_gb"),
@@ -61,12 +71,10 @@ def save_disc_to_db(disc_list):
                     storage_type=storage_type,
                     interface=interface
                 )
-               
                 session.add(new_disc)
                 saved += 1             
         session.commit()
-        print(f"[DB] Added: {saved}, Updated prices: {updated}")
-
+        print(f"[DB] Added SSDs: {saved}, Updated prices: {updated}")
 
 def save_cpu_to_db(cpu_list):
     engine = get_engine()
@@ -75,30 +83,22 @@ def save_cpu_to_db(cpu_list):
         updated=0
 
         for cpu_data in cpu_list:
-            existing_cpu = session.query(CPU).filter(CPU.name ==cpu_data["name"]).first()
-
-            try:
-                price = Decimal(cpu_data.get("price",0))
-            except Exception:
-                price = Decimal("0.00")
+            existing_cpu = session.query(CPU).filter(CPU.name == cpu_data["name"]).first()
+            price = safe_parse_price(cpu_data.get("price"), cpu_data["name"])
 
             if existing_cpu:
                 existing_cpu.price = price
                 updated+=1
             else:
                 raw_socket = str(cpu_data.get("socket", "")).upper()
-                if "AM4" in raw_socket:
-                    db_socket = SocketType.AM4
-                elif "AM5" in raw_socket:
-                    db_socket = SocketType.AM5
-                elif "1700" in raw_socket:
-                    db_socket = SocketType.LGA1700
-                else:
-                    db_socket = SocketType.AM5 # default
+                if "AM4" in raw_socket: db_socket = SocketType.AM4
+                elif "AM5" in raw_socket: db_socket = SocketType.AM5
+                elif "1700" in raw_socket: db_socket = SocketType.LGA1700
+                else: db_socket = SocketType.AM5 
                 
                 new_cpu = CPU(
                     name=cpu_data["name"],
-                    brand="AMD" if "AMD" in cpu_data["name"] else "Intel", 
+                    brand=cpu_data.get("brand", "AMD" if "AMD" in cpu_data["name"] else "Intel"), 
                     model="Unknown",
                     price=price,
                     socket=db_socket,
@@ -121,11 +121,7 @@ def save_mobo_to_db(mobo_list):
         updated = 0
         for data in mobo_list: 
             existing_mobo = session.query(Motherboard).filter(Motherboard.name == data["name"]).first()
-
-            try:
-                price = Decimal(data.get("price",0))
-            except Exception:
-                price = Decimal("0.00")
+            price = safe_parse_price(data.get("price"), data["name"])
 
             if existing_mobo:
                 existing_mobo.price = price
@@ -140,28 +136,22 @@ def save_mobo_to_db(mobo_list):
                 raw_ddr = str(data.get("ddr_generation", "")).upper()
                 db_ddr = DDRGeneration.DDR4 if "DDR4" in raw_ddr else DDRGeneration.DDR5
 
-                # mapping format (ATX, uATX itd)
                 raw_form = str(data.get("form_factor", "")).upper()
-                if "MICRO" in raw_form or "UATX" in raw_form or "MATX" in raw_form:
-                    db_form = FormFactor.MICRO_ATX
-                elif "MINI" in raw_form or "ITX" in raw_form:
-                    db_form = FormFactor.MINI_ITX
-                elif "E-ATX" in raw_form or "EXTENDED" in raw_form:
-                    db_form = FormFactor.E_ATX
-                else:
-                    db_form = FormFactor.ATX
+                if "MICRO" in raw_form or "UATX" in raw_form or "MATX" in raw_form: db_form = FormFactor.MICRO_ATX
+                elif "MINI" in raw_form or "ITX" in raw_form: db_form = FormFactor.MINI_ITX
+                elif "E-ATX" in raw_form or "EXTENDED" in raw_form: db_form = FormFactor.E_ATX
+                else: db_form = FormFactor.ATX
 
                 raw_chipset = str(data.get("chipset", "")).upper()
-                db_chipset = ChipsetFamily.B650 #default
-
+                db_chipset = ChipsetFamily.B650 
                 for chipset_enum in ChipsetFamily:
                     if chipset_enum.value.upper() in raw_chipset:
                         db_chipset = chipset_enum
                         break
 
                 new_mobo = Motherboard(
-                     name=data["name"],
-                    brand="Unknown",
+                    name=data["name"],
+                    brand=data.get("brand", "Unknown"),
                     model="Unknown",
                     price=price,
                     socket=db_socket,
@@ -177,6 +167,7 @@ def save_mobo_to_db(mobo_list):
 
         session.commit()
         print(f"[DB] Added MOBOs: {saved}, Updated prices: {updated}")
+
 def save_gpu_to_db(gpu_list):
     engine = get_engine()
     with Session(engine) as session:
@@ -184,25 +175,20 @@ def save_gpu_to_db(gpu_list):
         updated = 0
         for data in gpu_list:
             existing = session.query(GPU).filter(GPU.name == data["name"]).first()
-            try:
-                price = Decimal(data.get("price", 0))
-            except Exception:
-                price = Decimal("0.00")
+            price = safe_parse_price(data.get("price"), data["name"])
+            
             if existing:
                 existing.price = price
                 updated += 1
             else:
                 raw_vram = str(data.get("vram_type", "")).upper()
-                if "GDDR6X" in raw_vram:
-                    db_vram = VRAMType.GDDR6X
-                elif "GDDR7" in raw_vram:
-                    db_vram = VRAMType.GDDR7
-                else:
-                    db_vram = VRAMType.GDDR6 
+                if "GDDR6X" in raw_vram: db_vram = VRAMType.GDDR6X
+                elif "GDDR7" in raw_vram: db_vram = VRAMType.GDDR7
+                else: db_vram = VRAMType.GDDR6 
                 
                 new_gpu = GPU(
                     name=data["name"],
-                    brand="Unknown", 
+                    brand=data.get("brand", "Unknown"), 
                     model="Unknown",
                     price=price,
                     chip_manufacturer=data.get("chip_manufacturer", "NVIDIA"),
@@ -222,6 +208,7 @@ def save_gpu_to_db(gpu_list):
                 
         session.commit()
         print(f"[DB] Added GPUs: {saved}, Updated prices: {updated}")
+
 def save_ram_to_db(ram_list):
     engine = get_engine()
     with Session(engine) as session:
@@ -229,10 +216,8 @@ def save_ram_to_db(ram_list):
         updated = 0
         for data in ram_list:
             existing = session.query(RAM).filter(RAM.name == data["name"]).first()
-            try:
-                price = Decimal(data.get("price", 0))
-            except Exception:
-                price = Decimal("0.00")
+            price = safe_parse_price(data.get("price"), data["name"])
+            
             if existing:
                 existing.price = price
                 updated += 1
@@ -242,7 +227,7 @@ def save_ram_to_db(ram_list):
                 
                 new_ram = RAM(
                     name=data["name"],
-                    brand="Unknown",
+                    brand=data.get("brand", "Unknown"),
                     model="Unknown",
                     price=price,
                     ddr_generation=db_ddr,
@@ -258,3 +243,4 @@ def save_ram_to_db(ram_list):
                 
         session.commit()
         print(f"[DB] Added RAM: {saved}, Updated prices: {updated}")
+
