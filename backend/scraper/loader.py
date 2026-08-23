@@ -10,7 +10,7 @@ from app.models.components import Storage, CPU, Motherboard
 from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration
 from app.models.components import Storage, CPU, Motherboard, GPU
 from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration, VRAMType
-
+from app.models.components import Storage, CPU, Motherboard, GPU, RAM
 
 def setup_database():
     print("[DB] Creating tables")
@@ -222,3 +222,39 @@ def save_gpu_to_db(gpu_list):
                 
         session.commit()
         print(f"[DB] Added GPUs: {saved}, Updated prices: {updated}")
+def save_ram_to_db(ram_list):
+    engine = get_engine()
+    with Session(engine) as session:
+        saved = 0
+        updated = 0
+        for data in ram_list:
+            existing = session.query(RAM).filter(RAM.name == data["name"]).first()
+            try:
+                price = Decimal(data.get("price", 0))
+            except Exception:
+                price = Decimal("0.00")
+            if existing:
+                existing.price = price
+                updated += 1
+            else:
+                raw_ddr = str(data.get("ddr_generation", "")).upper()
+                db_ddr = DDRGeneration.DDR4 if "DDR4" in raw_ddr else DDRGeneration.DDR5
+                
+                new_ram = RAM(
+                    name=data["name"],
+                    brand="Unknown",
+                    model="Unknown",
+                    price=price,
+                    ddr_generation=db_ddr,
+                    speed_mhz=data.get("speed_mhz", 6000),
+                    total_capacity_gb=data.get("total_capacity_gb", 32),
+                    modules=data.get("modules", 2),
+                    capacity_per_module_gb=data.get("capacity_per_module_gb", 16),
+                    cas_latency=data.get("cas_latency", 32),
+                    voltage=data.get("voltage", None)  
+                )
+                session.add(new_ram)
+                saved += 1
+                
+        session.commit()
+        print(f"[DB] Added RAM: {saved}, Updated prices: {updated}")
