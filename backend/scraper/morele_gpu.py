@@ -4,17 +4,19 @@ from typing import Dict, List, Optional, Any
 import re
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from scraper.loader import setup_database,save_mobo_to_db
-import time
+from scraper.loader import setup_database,save_gpu_to_db
 from scraper.morele_cpu import  fetch_rendered_html
+import time
 
 # Configure standard Python logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-URL_MOBO = "***REMOVED***"
+URL_GPU = "***REMOVED***"
 DEFAULT_TIMEOUT_MS = 30000
-def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
+
+
+def parse_gpu_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")
     json_scripts = soup.find_all("script", type="application/ld+json")
     
@@ -31,7 +33,7 @@ def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
                 for element in items:
                     item_data = element.get("item", {})
                     
-                    name = item_data.get("name", "Unknown MOBO")
+                    name = item_data.get("name", "Unknown GPU")
                     price = item_data.get("offers", {}).get("price", "0")
                     url = item_data.get("url")
                     
@@ -45,36 +47,42 @@ def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
             continue
             
     return products
+
 def norm_data(raw_data: dict) -> dict:
     clean = {}
-    clean["socket"] = raw_data.get("Gniazdo procesora", "Unknown").strip()
-    clean["chipset"] = raw_data.get("Chipset płyty", "Unknown").strip()
-    clean["form_factor"] = raw_data.get("Standard płyty", "Unknown").strip()
-    clean["ddr_generation"] = raw_data.get("Standard pamięci", "Unknown").strip()
-
-    ram_slots_txt = raw_data.get("Liczba gniazd pamięci")
-    if ram_slots_txt and ram_slots_txt.isdigit():
-        clean["ram_slots"] = int (ram_slots_txt)
+    chipset = raw_data.get("Chipset karty graficznej", "").upper()
+    if "RTX" in chipset or "GTX" in chipset or "NVIDIA" in chipset:
+        clean["chip_manufacturer"] = "NVIDIA"
+    elif "RX" in chipset or "RADEON" in chipset or "AMD" in chipset:
+        clean["chip_manufacturer"] = "AMD"
     else:
-        clean["ram_slots"] = 4
+        clean["chip_manufacturer"] = "NVIDIA"
 
-    max_ram_txt = raw_data.get("Maksymalna ilość pamięci", "")
+    vram_txt = raw_data.get("Ilość pamięci RAM", "")
+    match_vram = re.search(r'\d+', vram_txt)
+    clean["vram_gb"] = int(match_vram.group()) if match_vram else 8
+    clean["vram_type"] = raw_data.get("Rodzaj pamięci RAM", "GDDR6").strip().upper()
 
-    match = re.search(r'\d+',max_ram_txt)
+    base_txt = raw_data.get("Taktowanie rdzenia", "")
+    match_base = re.search(r'\d+', base_txt)
+    clean["base_clock_mhz"] = int(match_base.group()) if match_base else 2000
+    
+    boost_txt = raw_data.get("Taktowanie rdzenia w trybie boost", "")
+    match_boost = re.search(r'\d+', boost_txt)
+    clean["boost_clock_mhz"] = int(match_boost.group()) if match_boost else 2500
 
-    if match:
-        clean["max_ram_capacity_gb"] = int(match.group())
-    else:
-        clean["max_ram_capacity_gb"] = 128
+    length_txt = raw_data.get("Długość karty", "")
+    match_length = re.search(r'\d+', length_txt)
+    clean["length_mm"] = int(match_length.group()) if match_length else 280
+    
+    psu_txt = raw_data.get("Rekomendowana moc zasilacza", "")
+    match_psu = re.search(r'\d+', psu_txt)
+    clean["recommended_psu_wattage"] = int(match_psu.group()) if match_psu else 600
+    clean["tdp"] = clean["recommended_psu_wattage"] // 2 
 
-    speed_txt = raw_data.get("Częstotliwości pracy pamięci", "")
-    all = re.findall(r'\d+', speed_txt)
 
-    if all:
-        clean["max_ram_speed_mhz"] = max([int(speed) for speed in all])
-    else:
-        clean["max_ram_speed_mhz"] = 4800
-    return clean
+    return clean    
+
 def get_spec(url):
     html_content = fetch_rendered_html(url)
     
@@ -99,31 +107,31 @@ def get_spec(url):
     
         return norm_data(raw_data)
     return {}
+    
 def main():
-    logger.info("Starting Motherboard extraction routine via Playwright")
-
-    raw_html = fetch_rendered_html(URL_MOBO)
+    logger.info("Starting GPU extraction routine via Playwright")
+    
+    raw_html = fetch_rendered_html(URL_GPU)
     if not raw_html:
+        logger.warning("Failed to retrieve HTML content. Exiting.")
         return
-    mobo_list = parse_mobo_json_ld(raw_html)
-
-    for mobo in mobo_list[:4]:
-        url= mobo.get("url")
+        
+    gpu_list = parse_gpu_json_ld(raw_html)
+    ready_gpu = []
+    
+    for gpu in gpu_list[:6]:
+        logger.info(f"Extracted -> Price: {gpu['price']} PLN | Model: {gpu['name']}")
+        url = gpu.get("url")
         if not url:
             continue
-
         spec = get_spec(url)
-        mobo.update(spec)
-
-        print(f"Nazwa: {mobo.get('name')}")
-        print(f"Socket: {mobo.get('socket')} | Chipset: {mobo.get('chipset')}")
-        print(f"Max RAM: {mobo.get('max_ram_capacity_gb')} GB | Predkosc RAM: {mobo.get('max_ram_speed_mhz')} MHz")
+        gpu.update(spec)
+        ready_gpu.append(gpu)
 
         time.sleep(1.5)
 
-        logger.info(f"Successfully extracted {len(mobo_list)} Motherboards to db ")
-        save_mobo_to_db(mobo_list[:4])
+    logger.info(f"Successfully extracted {len(ready_gpu)} GPU products.")
+    save_gpu_to_db(ready_gpu)
 
 if __name__ == "__main__":
     main()
-

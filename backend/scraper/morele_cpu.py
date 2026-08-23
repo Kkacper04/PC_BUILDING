@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Any
 import re
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from scraper.loader import setup_database, save_cpu_to_db
+from scraper.loader import setup_database,save_cpu_to_db
 import time
 
 # Configure standard Python logging

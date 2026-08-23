@@ -8,6 +8,9 @@ from app.models.components import Storage,CPU
 from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType
 from app.models.components import Storage, CPU, Motherboard
 from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration
+from app.models.components import Storage, CPU, Motherboard, GPU
+from app.models.enums import StorageType, StorageFormFactor, StorageInterface, SocketType, ChipsetFamily, FormFactor, DDRGeneration, VRAMType
+
 
 def setup_database():
     print("[DB] Creating tables")
@@ -174,3 +177,48 @@ def save_mobo_to_db(mobo_list):
 
         session.commit()
         print(f"[DB] Added MOBOs: {saved}, Updated prices: {updated}")
+def save_gpu_to_db(gpu_list):
+    engine = get_engine()
+    with Session(engine) as session:
+        saved = 0
+        updated = 0
+        for data in gpu_list:
+            existing = session.query(GPU).filter(GPU.name == data["name"]).first()
+            try:
+                price = Decimal(data.get("price", 0))
+            except Exception:
+                price = Decimal("0.00")
+            if existing:
+                existing.price = price
+                updated += 1
+            else:
+                raw_vram = str(data.get("vram_type", "")).upper()
+                if "GDDR6X" in raw_vram:
+                    db_vram = VRAMType.GDDR6X
+                elif "GDDR7" in raw_vram:
+                    db_vram = VRAMType.GDDR7
+                else:
+                    db_vram = VRAMType.GDDR6 
+                
+                new_gpu = GPU(
+                    name=data["name"],
+                    brand="Unknown", 
+                    model="Unknown",
+                    price=price,
+                    chip_manufacturer=data.get("chip_manufacturer", "NVIDIA"),
+                    vram_gb=data.get("vram_gb", 8),
+                    vram_type=db_vram,
+                    base_clock_mhz=data.get("base_clock_mhz", 1500),
+                    boost_clock_mhz=data.get("boost_clock_mhz", 1800),
+                    length_mm=data.get("length_mm", 280),
+                    width_slots=Decimal("2.5"), 
+                    tdp=data.get("tdp", 200),
+                    recommended_psu_wattage=data.get("recommended_psu_wattage", 550),
+                    pcie_power_8pin=1,
+                    pcie_power_12vhpwr=0
+                )
+                session.add(new_gpu)
+                saved += 1
+                
+        session.commit()
+        print(f"[DB] Added GPUs: {saved}, Updated prices: {updated}")
