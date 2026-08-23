@@ -46,7 +46,9 @@ def parse_ssd_json_ld(html_content: str) -> List[Dict[str, Any]]:
 
 def norm_data(data):
     convert = {}
-    convert["brand"] = data.get("Producent", "Unknown").strip()
+    brand_raw = data.get("Producent") or data.get("Marka") or "Unknown"
+    convert["brand"] = brand_raw.strip()
+    convert["model"] = data.get("Kod producenta", "Unknown").strip()
     capacity_txt = data.get("Pojemność dysku")
     if capacity_txt:
         match = re.search(r'(\d+)\s*(TB|GB)', capacity_txt)

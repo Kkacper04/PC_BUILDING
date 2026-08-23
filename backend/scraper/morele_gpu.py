@@ -50,19 +50,31 @@ def parse_gpu_json_ld(html_content: str) -> List[Dict[str, Any]]:
 
 def norm_data(raw_data: dict) -> dict:
     clean = {}
-    clean["brand"] = raw_data.get("Producent", "Unknown").strip()
-    chipset = raw_data.get("Chipset karty graficznej", "").upper()
+    brand_raw = raw_data.get("Producent") or raw_data.get("Marka") or "Unknown"
+    clean["brand"] = brand_raw.strip()
+    clean["model"] = raw_data.get("Kod producenta", "Unknown").strip()
+    chipset = raw_data.get("Producent chipsetu") or raw_data.get("Rodzaj chipsetu") or raw_data.get("Chipset karty graficznej") or ""
+    chipset = chipset.upper()
+    
+    clean["gpu_chip"] = raw_data.get("Rodzaj chipsetu") or raw_data.get("Chipset karty graficznej") or "Unknown"
+
     if "RTX" in chipset or "GTX" in chipset or "NVIDIA" in chipset:
         clean["chip_manufacturer"] = "NVIDIA"
     elif "RX" in chipset or "RADEON" in chipset or "AMD" in chipset:
         clean["chip_manufacturer"] = "AMD"
+    elif "ARC" in chipset or "INTEL" in chipset:
+        clean["chip_manufacturer"] = "Intel"
     else:
-        clean["chip_manufacturer"] = "NVIDIA"
+        clean["chip_manufacturer"] = "Unknown"
 
     vram_txt = raw_data.get("Ilość pamięci RAM", "")
     match_vram = re.search(r'\d+', vram_txt)
     clean["vram_gb"] = int(match_vram.group()) if match_vram else 8
     clean["vram_type"] = raw_data.get("Rodzaj pamięci RAM", "GDDR6").strip().upper()
+    
+    bus_txt = raw_data.get("Szyna danych", "")
+    match_bus = re.search(r'\d+', bus_txt)
+    clean["memory_bus_width"] = int(match_bus.group()) if match_bus else None
 
     base_txt = raw_data.get("Taktowanie rdzenia", "")
     match_base = re.search(r'\d+', base_txt)

@@ -47,7 +47,9 @@ def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
     return products
 def norm_data(raw_data: dict) -> dict:
     clean = {}
-    clean["brand"] = raw_data.get("Producent", "Unknown").strip()
+    brand_raw = raw_data.get("Producent") or raw_data.get("Marka") or "Unknown"
+    clean["brand"] = brand_raw.strip()
+    clean["model"] = raw_data.get("Kod producenta", "Unknown").strip()
     clean["socket"] = raw_data.get("Gniazdo procesora", "Unknown").strip()
     clean["chipset"] = raw_data.get("Chipset płyty", "Unknown").strip()
     clean["form_factor"] = raw_data.get("Standard płyty", "Unknown").strip()
@@ -122,8 +124,8 @@ def main():
 
         time.sleep(1.5)
 
-        logger.info(f"Successfully extracted {len(mobo_list)} Motherboards to db ")
-        save_mobo_to_db(mobo_list[:4])
+    logger.info(f"Successfully extracted {len(mobo_list)} Motherboards to db ")
+    save_mobo_to_db(mobo_list[:4])
 
 if __name__ == "__main__":
     main()

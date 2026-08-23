@@ -55,14 +55,19 @@ def save_disc_to_db(disc_list):
                 
             price = safe_parse_price(disc.get("price"), disc["name"])
 
+            model_val = disc.get("model", "Unknown")
             if existing_ssd:
                 existing_ssd.price = price
+                if existing_ssd.brand == "Unknown" and "brand" in disc:
+                    existing_ssd.brand = disc["brand"]
+                if existing_ssd.model == "Unknown" and model_val != "Unknown":
+                    existing_ssd.model = model_val
                 updated += 1
             else:
                 new_disc = Storage(
                     name=disc["name"],
                     brand=disc.get("brand", "Unknown"), 
-                    model="Unknown",
+                    model=model_val,
                     price=price,
                     capacity_gb=disc.get("capacity_gb"),
                     read_speed_mbps=disc.get("read_speed_mbps"),
@@ -85,9 +90,13 @@ def save_cpu_to_db(cpu_list):
         for cpu_data in cpu_list:
             existing_cpu = session.query(CPU).filter(CPU.name == cpu_data["name"]).first()
             price = safe_parse_price(cpu_data.get("price"), cpu_data["name"])
-
+            model_val = cpu_data.get("model", "Unknown")
             if existing_cpu:
                 existing_cpu.price = price
+                if existing_cpu.brand == "Unknown" and "brand" in cpu_data:
+                    existing_cpu.brand = cpu_data["brand"]
+                if existing_cpu.model == "Unknown" and model_val != "Unknown":
+                    existing_cpu.model = model_val
                 updated+=1
             else:
                 raw_socket = str(cpu_data.get("socket", "")).upper()
@@ -99,7 +108,7 @@ def save_cpu_to_db(cpu_list):
                 new_cpu = CPU(
                     name=cpu_data["name"],
                     brand=cpu_data.get("brand", "AMD" if "AMD" in cpu_data["name"] else "Intel"), 
-                    model="Unknown",
+                    model=model_val,
                     price=price,
                     socket=db_socket,
                     cores=cpu_data.get("cores", 4) or 4,
@@ -123,8 +132,13 @@ def save_mobo_to_db(mobo_list):
             existing_mobo = session.query(Motherboard).filter(Motherboard.name == data["name"]).first()
             price = safe_parse_price(data.get("price"), data["name"])
 
+            model_val = data.get("model", "Unknown")
             if existing_mobo:
                 existing_mobo.price = price
+                if existing_mobo.brand == "Unknown" and "brand" in data:
+                    existing_mobo.brand = data["brand"]
+                if existing_mobo.model == "Unknown" and model_val != "Unknown":
+                    existing_mobo.model = model_val
                 updated+=1
             else:
                 raw_socket = str(data.get("socket", "")).upper()
@@ -152,7 +166,7 @@ def save_mobo_to_db(mobo_list):
                 new_mobo = Motherboard(
                     name=data["name"],
                     brand=data.get("brand", "Unknown"),
-                    model="Unknown",
+                    model=model_val,
                     price=price,
                     socket=db_socket,
                     chipset=db_chipset,
@@ -177,23 +191,37 @@ def save_gpu_to_db(gpu_list):
             existing = session.query(GPU).filter(GPU.name == data["name"]).first()
             price = safe_parse_price(data.get("price"), data["name"])
             
+            model_val = data.get("model", "Unknown")
             if existing:
                 existing.price = price
+                if existing.brand == "Unknown" and "brand" in data:
+                    existing.brand = data["brand"]
+                if existing.model == "Unknown" and model_val != "Unknown":
+                    existing.model = model_val
+                if data.get("gpu_chip") and (not existing.gpu_chip or existing.gpu_chip == "Unknown"):
+                    existing.gpu_chip = data["gpu_chip"]
+                if data.get("memory_bus_width") and not existing.memory_bus_width:
+                    existing.memory_bus_width = data["memory_bus_width"]
                 updated += 1
             else:
                 raw_vram = str(data.get("vram_type", "")).upper()
                 if "GDDR6X" in raw_vram: db_vram = VRAMType.GDDR6X
                 elif "GDDR7" in raw_vram: db_vram = VRAMType.GDDR7
+                elif "GDDR6" in raw_vram: db_vram = VRAMType.GDDR6
+                elif "GDDR5X" in raw_vram: db_vram = VRAMType.GDDR5X
+                elif "GDDR5" in raw_vram: db_vram = VRAMType.GDDR5
                 else: db_vram = VRAMType.GDDR6 
                 
                 new_gpu = GPU(
                     name=data["name"],
                     brand=data.get("brand", "Unknown"), 
-                    model="Unknown",
+                    model=model_val,
                     price=price,
-                    chip_manufacturer=data.get("chip_manufacturer", "NVIDIA"),
+                    chip_manufacturer=data.get("chip_manufacturer", "Unknown"),
+                    gpu_chip=data.get("gpu_chip", "Unknown"),
                     vram_gb=data.get("vram_gb", 8),
                     vram_type=db_vram,
+                    memory_bus_width=data.get("memory_bus_width"),
                     base_clock_mhz=data.get("base_clock_mhz", 1500),
                     boost_clock_mhz=data.get("boost_clock_mhz", 1800),
                     length_mm=data.get("length_mm", 280),
@@ -218,8 +246,13 @@ def save_ram_to_db(ram_list):
             existing = session.query(RAM).filter(RAM.name == data["name"]).first()
             price = safe_parse_price(data.get("price"), data["name"])
             
+            model_val = data.get("model", "Unknown")
             if existing:
                 existing.price = price
+                if existing.brand == "Unknown" and "brand" in data:
+                    existing.brand = data["brand"]
+                if existing.model == "Unknown" and model_val != "Unknown":
+                    existing.model = model_val
                 updated += 1
             else:
                 raw_ddr = str(data.get("ddr_generation", "")).upper()
@@ -228,7 +261,7 @@ def save_ram_to_db(ram_list):
                 new_ram = RAM(
                     name=data["name"],
                     brand=data.get("brand", "Unknown"),
-                    model="Unknown",
+                    model=model_val,
                     price=price,
                     ddr_generation=db_ddr,
                     speed_mhz=data.get("speed_mhz", 6000),

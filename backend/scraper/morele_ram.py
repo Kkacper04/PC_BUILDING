@@ -51,7 +51,9 @@ def parse_ram_json_ld(html_content: str) -> List[Dict[str, Any]]:
 
 def norm_data(raw_data: dict) -> dict:
     clean = {}
-    clean["brand"] = raw_data.get("Producent", "Unknown").strip()
+    brand_raw = raw_data.get("Producent") or raw_data.get("Marka") or "Unknown"
+    clean["brand"] = brand_raw.strip()
+    clean["model"] = raw_data.get("Kod producenta", "Unknown").strip()
     clean["ddr_generation"] = raw_data.get("Typ pamięci", "DDR5").strip()
 
     capacity_txt = raw_data.get("Pojemność całkowita", "")

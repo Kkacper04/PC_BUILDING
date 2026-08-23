@@ -93,6 +93,8 @@ class FormFactor(str, enum.Enum):
 # ---------------------------------------------------------------------------
 
 class VRAMType(str, enum.Enum):
+    GDDR5 = "GDDR5"
+    GDDR5X = "GDDR5X"
     GDDR6 = "GDDR6"
     GDDR6X = "GDDR6X"
     GDDR7 = "GDDR7"
