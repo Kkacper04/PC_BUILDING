@@ -111,9 +111,27 @@ class CompatibilityChecker:
    
     # Motherboard form factor must fit inside the Case
     def check_mobo_case(self, mobo: Motherboard, pc_case: Case) -> bool:
-        # Map common case_type strings to the largest form factor they accept
-        case_type_upper = (pc_case.case_type or "").upper()
+        if not mobo.form_factor:
+            self.errors.append("Cannot verify Motherboard-Case compatibility: missing Form Factor data.")
+            return False
 
+        ff = mobo.form_factor
+        assert ff is not None
+        
+        # Jeśli obudowa ma zdefiniowaną precyzyjną relację w bazie
+        if pc_case.supported_form_factors:
+            supported = [supp.form_factor for supp in pc_case.supported_form_factors]
+            if ff in supported:
+                return True
+            else:
+                self.errors.append(
+                    f"Motherboard form factor ({ff.value}) is not officially supported "
+                    f"by this case (Supports: {[s.value for s in supported]})."
+                )
+                return False
+
+        # Fallback logic jeśli baza jeszcze nie ma wypełnionych relacji
+        case_type_upper = (pc_case.case_type or "").upper()
         if "FULL" in case_type_upper or "BIG" in case_type_upper:
             max_ff = FormFactor.E_ATX
         elif "MID" in case_type_upper:
@@ -126,10 +144,6 @@ class CompatibilityChecker:
             # Default: assume Mid Tower (ATX)
             max_ff = FormFactor.ATX
 
-        # Pylance type-narrowing workaround (assign to local variable)
-        ff = mobo.form_factor
-        assert ff is not None
-        
         mobo_size = _FF_SIZE.get(ff, 2)
         case_max_size = _FF_SIZE.get(max_ff, 2)
 

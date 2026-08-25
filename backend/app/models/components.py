@@ -41,22 +41,16 @@ from app.models.enums import (
 
 
 
-cooler_socket_compatibility = Table(
-    "cooler_socket_compatibility",
-    Base.metadata,
-    Column("cooler_id", Integer, ForeignKey("cpu_coolers.id", ondelete="CASCADE"), primary_key=True),
-    Column("socket", Enum(SocketType), primary_key=True),
-)
-#Which sockets a CPU cooler's mounting kit supports.
+class CaseFormFactor(Base):
+    __tablename__ = "case_form_factor_support"
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id", ondelete="CASCADE"), primary_key=True)
+    form_factor: Mapped[FormFactor] = mapped_column(Enum(FormFactor), primary_key=True)
 
 
-case_form_factor_support = Table(
-    "case_form_factor_support",
-    Base.metadata,
-    Column("case_id", Integer, ForeignKey("cases.id", ondelete="CASCADE"), primary_key=True),
-    Column("form_factor", Enum(FormFactor), primary_key=True),
-)
-#Which motherboard form factors physically fit inside a case.
+class CoolerSocket(Base):
+    __tablename__ = "cooler_socket_compatibility"
+    cooler_id: Mapped[int] = mapped_column(ForeignKey("cpu_coolers.id", ondelete="CASCADE"), primary_key=True)
+    socket: Mapped[SocketType] = mapped_column(Enum(SocketType), primary_key=True)
 
 
 chipset_socket_map = Table(
@@ -429,6 +423,8 @@ class Case(_ComponentMixin, Base):
     height_mm: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     weight_kg: Mapped[Optional[Decimal]] = mapped_column(Numeric(5, 2), nullable=True)
 
+    supported_form_factors: Mapped[List["CaseFormFactor"]] = relationship(lazy="joined")
+
     has_tempered_glass: Mapped[bool] = mapped_column(Boolean, default=False)
     front_io_usb_c: Mapped[bool] = mapped_column(Boolean, default=False, comment="Front panel USB-C header")
     psu_form_factor: Mapped[PSUFormFactor] = mapped_column(
@@ -560,6 +556,7 @@ class CPUCooler(_ComponentMixin, Base):
         comment="e.g. 'Fluid Dynamic', 'Ball Bearing'",
     )
 
+    supported_sockets: Mapped[List["CoolerSocket"]] = relationship(lazy="joined")
    
     builds: Mapped[List["Build"]] = relationship(back_populates="cpu_cooler")
 

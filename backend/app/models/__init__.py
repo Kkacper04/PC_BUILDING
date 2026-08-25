@@ -25,9 +25,9 @@ from app.models.components import (
     PSU,
     RAM,
     Storage,
-    case_form_factor_support,
+    CaseFormFactor,
     chipset_socket_map,
-    cooler_socket_compatibility,
+    CoolerSocket,
 )
 
 __all__ = [
@@ -56,8 +56,8 @@ __all__ = [
     "PSU",
     "RAM",
     "Storage",
+    "CaseFormFactor",
+    "CoolerSocket",
     # Association tables
-    "case_form_factor_support",
     "chipset_socket_map",
-    "cooler_socket_compatibility",
 ]
