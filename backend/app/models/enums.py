@@ -165,10 +165,6 @@ class StorageInterface(str, enum.Enum):
     SATA3 = "SATA III"
 
 
-# ---------------------------------------------------------------------------
-# Component Category (for the unified "Component" reference if needed)
-# ---------------------------------------------------------------------------
-
 class ComponentCategory(str, enum.Enum):
     CPU = "CPU"
     MOTHERBOARD = "Motherboard"
