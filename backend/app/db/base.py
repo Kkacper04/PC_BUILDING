@@ -12,7 +12,7 @@ from sqlalchemy.orm import (
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://pc_builder:pc_builder@localhost:5432/pc_builder",
+    "postgresql://pc_builder:pc_builder_password@localhost:5432/pc_builder",
 )
 
 

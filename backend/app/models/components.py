@@ -47,7 +47,7 @@ cooler_socket_compatibility = Table(
     Column("cooler_id", Integer, ForeignKey("cpu_coolers.id", ondelete="CASCADE"), primary_key=True),
     Column("socket", Enum(SocketType), primary_key=True),
 )
-"""Which sockets a CPU cooler's mounting kit supports."""
+#Which sockets a CPU cooler's mounting kit supports.
 
 
 case_form_factor_support = Table(
@@ -56,7 +56,7 @@ case_form_factor_support = Table(
     Column("case_id", Integer, ForeignKey("cases.id", ondelete="CASCADE"), primary_key=True),
     Column("form_factor", Enum(FormFactor), primary_key=True),
 )
-"""Which motherboard form factors physically fit inside a case."""
+#Which motherboard form factors physically fit inside a case.
 
 
 chipset_socket_map = Table(
@@ -81,7 +81,7 @@ class _ComponentMixin:
     price: Mapped[Decimal] = mapped_column(
         Numeric(10, 2),
         nullable=False,
-        comment="Current retail price in USD",
+        comment="Current retail price in PLN",
     )
     image_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     release_year: Mapped[Optional[int]] = mapped_column(SmallInteger, nullable=True)
