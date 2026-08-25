@@ -113,7 +113,7 @@ def main():
     psu_list = parse_psu_json_ld(raw_html)
     ready_psu = []
     
-    for psu in psu_list[:6]:
+    for psu in psu_list[:30]:
         logger.info(f"Extracted -> Price: {psu['price']} PLN | Model: {psu['name']}")
         url = psu.get("url")
         if not url:

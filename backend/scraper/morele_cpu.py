@@ -168,7 +168,7 @@ def main():
     cpu_list = parse_cpu_json_ld(raw_html)
     ready_cpu = []
     
-    for cpu in cpu_list[:6]:
+    for cpu in cpu_list[:20]:
         logger.info(f"Extracted -> Price: {cpu['price']} PLN | Model: {cpu['name']}")
         url = cpu.get("url")
         if not url:

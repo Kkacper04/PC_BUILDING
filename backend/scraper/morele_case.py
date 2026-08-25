@@ -136,7 +136,7 @@ def main():
     case_list = parse_case_json_ld(raw_html)
     ready_case = []
     
-    for case in case_list[:6]:
+    for case in case_list[:20]:
         logger.info(f"Extracted -> Price: {case['price']} PLN | Model: {case['name']}")
         url = case.get("url")
         if not url:

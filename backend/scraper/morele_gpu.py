@@ -132,7 +132,7 @@ def main():
     gpu_list = parse_gpu_json_ld(raw_html)
     ready_gpu = []
     
-    for gpu in gpu_list[:6]:
+    for gpu in gpu_list[:20]:
         logger.info(f"Extracted -> Price: {gpu['price']} PLN | Model: {gpu['name']}")
         url = gpu.get("url")
         if not url:

@@ -123,7 +123,7 @@ def main():
     ram_list = parse_ram_json_ld(raw_html)
 
     ready_ram = []
-    for ram in ram_list[:10]:
+    for ram in ram_list[:24]:
         url= ram.get("url")
         if not url:
             continue

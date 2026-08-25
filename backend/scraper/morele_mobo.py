@@ -110,7 +110,9 @@ def main():
         return
     mobo_list = parse_mobo_json_ld(raw_html)
 
-    for mobo in mobo_list[:4]:
+    mobo_subset = mobo_list[:15]
+
+    for mobo in mobo_subset:
         url= mobo.get("url")
         if not url:
             continue
@@ -124,8 +126,8 @@ def main():
 
         time.sleep(1.5)
 
-    logger.info(f"Successfully extracted {len(mobo_list)} Motherboards to db ")
-    save_mobo_to_db(mobo_list[:4])
+    logger.info(f"Successfully extracted {len(mobo_subset)} Motherboards to db ")
+    save_mobo_to_db(mobo_subset)
 
 if __name__ == "__main__":
     main()

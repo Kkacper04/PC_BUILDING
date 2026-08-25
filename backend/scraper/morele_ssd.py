@@ -119,7 +119,7 @@ def main():
     ssd_list = parse_ssd_json_ld(raw_html)
     ready_to_save = []
     
-    for ssd in ssd_list[:7]:
+    for ssd in ssd_list[:30]:
         logger.info(f"Pobieram: {ssd['name']}")
         
         url = ssd.get("url")
