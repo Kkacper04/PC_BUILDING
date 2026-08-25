@@ -115,7 +115,7 @@ def get_spec(url):
     return {}
 
 def main():
-    logger.info("Starting Motherboard extraction routine via Playwright")
+    logger.info("Starting RAM extraction routine via Playwright")
 
     raw_html = fetch_rendered_html(URL_RAM)
     if not raw_html:
