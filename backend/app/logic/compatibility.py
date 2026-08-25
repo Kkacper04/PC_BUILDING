@@ -20,11 +20,18 @@ class CompatibilityChecker:
     
     # CPU socket must match Motherboard socket
     def check_cpu_motherboard(self, cpu: CPU, mobo: Motherboard) -> bool:
+        if not cpu.socket or not mobo.socket:
+            self.errors.append("Cannot verify CPU-Motherboard compatibility: missing socket data.")
+            return False
+
         if cpu.socket == mobo.socket:
             return True
+            
+        cpu_sock = cpu.socket.value
+        mobo_sock = mobo.socket.value
         self.errors.append(
-            f"CPU socket ({cpu.socket.value}) does not match "
-            f"Motherboard socket ({mobo.socket.value})."
+            f"CPU socket ({cpu_sock}) does not match "
+            f"Motherboard socket ({mobo_sock})."
         )
         return False
 
@@ -33,10 +40,15 @@ class CompatibilityChecker:
     def check_ram_motherboard(self, ram: RAM, mobo: Motherboard) -> bool:
         is_compatible = True
 
-        if ram.ddr_generation != mobo.ddr_generation:
+        if not ram.ddr_generation or not mobo.ddr_generation:
+            self.errors.append("Cannot verify RAM-Motherboard compatibility: missing DDR generation data.")
+            is_compatible = False
+        elif ram.ddr_generation != mobo.ddr_generation:
+            ram_ddr = ram.ddr_generation.value
+            mobo_ddr = mobo.ddr_generation.value
             self.errors.append(
-                f"RAM generation ({ram.ddr_generation.value}) does not match "
-                f"Motherboard standard ({mobo.ddr_generation.value})."
+                f"RAM generation ({ram_ddr}) does not match "
+                f"Motherboard standard ({mobo_ddr})."
             )
             is_compatible = False
 
@@ -70,18 +82,28 @@ class CompatibilityChecker:
    
     # PSU must supply enough wattage
     def check_power_supply(self, cpu: CPU, gpu: GPU, psu: PSU) -> bool:
-        consumption = cpu.tdp + gpu.tdp + 100  # +100W overhead
+        if not cpu.tdp or not gpu.tdp or not psu.wattage:
+            self.errors.append("Cannot verify Power Supply: missing TDP or wattage data.")
+            return False
+            
+        # Pylance workaround for SQLAlchemy Optional ints
+        c_tdp: int = cpu.tdp
+        g_tdp: int = gpu.tdp
+        p_watt: int = psu.wattage
+            
+        consumption = c_tdp + g_tdp + 100  # +100W overhead
 
-        if psu.wattage >= consumption:
-            if psu.wattage - consumption < 50:
+        if p_watt >= consumption:
+            if p_watt - consumption < 50:
                 self.warnings.append(
-                    f"PSU wattage ({psu.wattage}W) is very close to the "
+                    f"PSU wattage ({p_watt}W) is very close to the "
                     f"estimated consumption ({consumption}W). "
                     f"Consider a higher-wattage unit."
                 )
             return True
+            
         self.errors.append(
-            f"PSU wattage ({psu.wattage}W) is insufficient for estimated "
+            f"PSU wattage ({p_watt}W) is insufficient for estimated "
             f"consumption ({consumption}W)."
         )
         return False
@@ -104,13 +126,19 @@ class CompatibilityChecker:
             # Default: assume Mid Tower (ATX)
             max_ff = FormFactor.ATX
 
-        mobo_size = _FF_SIZE.get(mobo.form_factor, 2)
+        # Pylance type-narrowing workaround (assign to local variable)
+        ff = mobo.form_factor
+        assert ff is not None
+        
+        mobo_size = _FF_SIZE.get(ff, 2)
         case_max_size = _FF_SIZE.get(max_ff, 2)
 
         if mobo_size <= case_max_size:
             return True
+            
+        ff_str = ff.value
         self.errors.append(
-            f"Motherboard form factor ({mobo.form_factor.value}) is too large "
+            f"Motherboard form factor ({ff_str}) is too large "
             f"for this case type ({pc_case.case_type})."
         )
         return False

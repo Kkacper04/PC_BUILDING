@@ -14,27 +14,32 @@ logger = logging.getLogger(__name__)
 URL_CPU = "***REMOVED***"
 DEFAULT_TIMEOUT_MS = 30000
 
-def fetch_rendered_html(url: str) -> Optional[str]:
-    logger.info(f"Initializing headless browser for URL: {url}")
+def fetch_rendered_html(url: str, page=None) -> Optional[str]:
+    logger.info(f"Navigating to URL: {url}")
     
+    # Jeśli ktoś przekazał otwartą kartę przeglądarki, używamy jej
+    if page:
+        try:
+            page.goto(url, timeout=DEFAULT_TIMEOUT_MS)
+            page.wait_for_timeout(2000)
+            return page.content()
+        except PlaywrightTimeoutError:
+            logger.error(f"Timeout while trying to load {url}")
+            return None
+            
+    # W przeciwnym razie otwieramy własną i zamykamy (stare zachowanie)
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        new_page = browser.new_page()
         
-        # Spoof user-agent to mitigate basic bot-detection mechanisms
-        page.set_extra_http_headers({
+        new_page.set_extra_http_headers({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         })
         
         try:
-            page.goto(url, timeout=DEFAULT_TIMEOUT_MS)
-            
-            # Allow time for asynchronous client-side rendering (dynamic product grids)
-            # Using playwright's built-in wait rather than time.sleep()
-            page.wait_for_timeout(2000) 
-            
-            html_content = page.content()
-            return html_content
+            new_page.goto(url, timeout=DEFAULT_TIMEOUT_MS)
+            new_page.wait_for_timeout(2000) 
+            return new_page.content()
             
         except PlaywrightTimeoutError:
             logger.error(f"Timeout while trying to load {url}")

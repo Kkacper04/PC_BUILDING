@@ -104,11 +104,16 @@ def save_cpu_to_db(cpu_list):
                 if "AM4" in raw_socket: db_socket = SocketType.AM4
                 elif "AM5" in raw_socket: db_socket = SocketType.AM5
                 elif "1700" in raw_socket: db_socket = SocketType.LGA1700
-                else: db_socket = SocketType.AM5 
+                else: db_socket = None 
                 
+                brand_val = cpu_data.get("brand", "Unknown")
+                if brand_val == "Unknown":
+                    if "AMD" in cpu_data["name"].upper(): brand_val = "AMD"
+                    elif "INTEL" in cpu_data["name"].upper(): brand_val = "Intel"
+
                 new_cpu = CPU(
                     name=cpu_data["name"],
-                    brand=cpu_data.get("brand", "AMD" if "AMD" in cpu_data["name"] else "Intel"), 
+                    brand=brand_val, 
                     model=model_val,
                     price=price,
                     socket=db_socket,
@@ -116,7 +121,7 @@ def save_cpu_to_db(cpu_list):
                     threads=cpu_data.get("threads") or cpu_data.get("cores", 4),
                     base_clock_mhz=cpu_data.get("base_clock_mhz", 0),
                     boost_clock_mhz=cpu_data.get("boost_clock_mhz", 0),
-                    tdp=cpu_data.get("tdp_w", 65) or 65,
+                    tdp=cpu_data.get("tdp_w") or 65,
                     integrated_graphics="Tak" if cpu_data.get("has_integrated_gpu") else "Brak"
                 )
                 session.add(new_cpu)
@@ -146,7 +151,7 @@ def save_mobo_to_db(mobo_list):
                 if "AM4" in raw_socket: db_socket = SocketType.AM4
                 elif "AM5" in raw_socket: db_socket = SocketType.AM5
                 elif "1700" in raw_socket: db_socket = SocketType.LGA1700
-                else: db_socket = SocketType.AM5 
+                else: db_socket = None 
                 
                 raw_ddr = str(data.get("ddr_generation", "")).upper()
                 db_ddr = DDRGeneration.DDR4 if "DDR4" in raw_ddr else DDRGeneration.DDR5
@@ -155,10 +160,11 @@ def save_mobo_to_db(mobo_list):
                 if "MICRO" in raw_form or "UATX" in raw_form or "MATX" in raw_form: db_form = FormFactor.MICRO_ATX
                 elif "MINI" in raw_form or "ITX" in raw_form: db_form = FormFactor.MINI_ITX
                 elif "E-ATX" in raw_form or "EXTENDED" in raw_form: db_form = FormFactor.E_ATX
-                else: db_form = FormFactor.ATX
+                elif "ATX" in raw_form: db_form = FormFactor.ATX
+                else: db_form = None
 
                 raw_chipset = str(data.get("chipset", "")).upper()
-                db_chipset = ChipsetFamily.B650 
+                db_chipset = None 
                 for chipset_enum in ChipsetFamily:
                     if chipset_enum.value.upper() in raw_chipset:
                         db_chipset = chipset_enum
@@ -226,8 +232,8 @@ def save_gpu_to_db(gpu_list):
                     base_clock_mhz=data.get("base_clock_mhz", 1500),
                     boost_clock_mhz=data.get("boost_clock_mhz", 1800),
                     length_mm=data.get("length_mm", 280),
-                    width_slots=Decimal("2.5"), 
-                    tdp=data.get("tdp", 200),
+                    width_slots=data.get("width_slots"), 
+                    tdp=data.get("tdp"),
                     recommended_psu_wattage=data.get("recommended_psu_wattage", 550),
                     pcie_power_8pin=1,
                     pcie_power_12vhpwr=0

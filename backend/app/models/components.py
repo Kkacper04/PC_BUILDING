@@ -108,7 +108,7 @@ class CPU(_ComponentMixin, Base):
     )
 
    
-    socket: Mapped[SocketType] = mapped_column(Enum(SocketType), nullable=False, index=True)
+    socket: Mapped[Optional[SocketType]] = mapped_column(Enum(SocketType), nullable=True, index=True)
     chipset_family: Mapped[Optional[str]] = mapped_column(
         String(100),
         nullable=True,
@@ -179,7 +179,8 @@ class CPU(_ComponentMixin, Base):
     builds: Mapped[List["Build"]] = relationship(back_populates="cpu")
 
     def __repr__(self) -> str:
-        return f"<CPU {self.brand} {self.model} ({self.socket.value})>"
+        socket_str = self.socket.value if self.socket else "Unknown Socket"
+        return f"<CPU {self.brand} {self.model} ({socket_str})>"
 
 
 
@@ -193,9 +194,9 @@ class Motherboard(_ComponentMixin, Base):
     )
 
    
-    socket: Mapped[SocketType] = mapped_column(Enum(SocketType), nullable=False, index=True)
-    chipset: Mapped[ChipsetFamily] = mapped_column(Enum(ChipsetFamily), nullable=False, index=True)
-    form_factor: Mapped[FormFactor] = mapped_column(Enum(FormFactor), nullable=False, index=True)
+    socket: Mapped[Optional[SocketType]] = mapped_column(Enum(SocketType), nullable=True, index=True)
+    chipset: Mapped[Optional[ChipsetFamily]] = mapped_column(Enum(ChipsetFamily), nullable=True, index=True)
+    form_factor: Mapped[Optional[FormFactor]] = mapped_column(Enum(FormFactor), nullable=True, index=True)
 
    
     ddr_generation: Mapped[DDRGeneration] = mapped_column(Enum(DDRGeneration), nullable=False)
@@ -256,7 +257,9 @@ class Motherboard(_ComponentMixin, Base):
     builds: Mapped[List["Build"]] = relationship(back_populates="motherboard")
 
     def __repr__(self) -> str:
-        return f"<Motherboard {self.brand} {self.model} ({self.socket.value} / {self.form_factor.value})>"
+        socket_str = self.socket.value if self.socket else "Unknown"
+        ff_str = self.form_factor.value if self.form_factor else "Unknown"
+        return f"<Motherboard {self.brand} {self.model} ({socket_str} / {ff_str})>"
 
 
 
@@ -334,16 +337,15 @@ class GPU(_ComponentMixin, Base):
 
    
     length_mm: Mapped[int] = mapped_column(Integer, nullable=False, comment="Total card length in mm")
-    width_slots: Mapped[Decimal] = mapped_column(
+    width_slots: Mapped[Optional[Decimal]] = mapped_column(
         Numeric(3, 1),
-        nullable=False,
-        default=Decimal("2.0"),
+        nullable=True,
         comment="Slot width, e.g. 2.0, 2.5, 3.0, 3.5",
     )
     height_mm: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Card height in mm")
 
     
-    tdp: Mapped[int] = mapped_column(Integer, nullable=False, comment="Total board power in watts")
+    tdp: Mapped[Optional[int]] = mapped_column(Integer, nullable=True, comment="Total board power in watts")
     recommended_psu_wattage: Mapped[int] = mapped_column(
         Integer,
         nullable=False,
