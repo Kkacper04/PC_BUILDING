@@ -81,15 +81,24 @@ class CompatibilityChecker:
 
    
     # PSU must supply enough wattage
-    def check_power_supply(self, cpu: CPU, gpu: GPU, psu: PSU) -> bool:
-        if not cpu.tdp or not gpu.tdp or not psu.wattage:
+    def check_power_supply(self, cpu: CPU, gpu: Optional[GPU], psu: PSU) -> bool:
+        if not cpu.tdp or not psu.wattage:
             self.errors.append("Cannot verify Power Supply: missing TDP or wattage data.")
             return False
-            
-        # Pylance workaround for SQLAlchemy Optional ints
+        
         c_tdp: int = cpu.tdp
-        g_tdp: int = gpu.tdp
         p_watt: int = psu.wattage
+        
+        # GPU TDP: use actual TDP, fall back to recommended_psu_wattage * 0.4, or 0 for iGPU
+        g_tdp: int = 0
+        if gpu:
+            if gpu.tdp:
+                g_tdp = gpu.tdp
+            elif gpu.recommended_psu_wattage:
+                g_tdp = int(gpu.recommended_psu_wattage * 0.4)
+                self.warnings.append(
+                    f"GPU TDP unknown, estimating ~{g_tdp}W from recommended PSU wattage."
+                )
             
         consumption = c_tdp + g_tdp + 100  # +100W overhead
 
@@ -116,21 +125,22 @@ class CompatibilityChecker:
             return False
 
         ff = mobo.form_factor
-        assert ff is not None
+        mobo_size = _FF_SIZE.get(ff, 2)
         
-        # Jeśli obudowa ma zdefiniowaną precyzyjną relację w bazie
+        # Use DB relation if available — with hierarchical check (smaller always fits)
         if pc_case.supported_form_factors:
             supported = [supp.form_factor for supp in pc_case.supported_form_factors]
-            if ff in supported:
+            max_supported_size = max(_FF_SIZE.get(s, 0) for s in supported)
+            if mobo_size <= max_supported_size:
                 return True
             else:
                 self.errors.append(
-                    f"Motherboard form factor ({ff.value}) is not officially supported "
-                    f"by this case (Supports: {[s.value for s in supported]})."
+                    f"Motherboard form factor ({ff.value}) is too large "
+                    f"for this case (max supported: {[s.value for s in supported]})."
                 )
                 return False
 
-        # Fallback logic jeśli baza jeszcze nie ma wypełnionych relacji
+        # Fallback: guess from case_type string
         case_type_upper = (pc_case.case_type or "").upper()
         if "FULL" in case_type_upper or "BIG" in case_type_upper:
             max_ff = FormFactor.E_ATX
@@ -141,42 +151,89 @@ class CompatibilityChecker:
         elif "MICRO" in case_type_upper:
             max_ff = FormFactor.MICRO_ATX
         else:
-            # Default: assume Mid Tower (ATX)
             max_ff = FormFactor.ATX
 
-        mobo_size = _FF_SIZE.get(ff, 2)
         case_max_size = _FF_SIZE.get(max_ff, 2)
 
         if mobo_size <= case_max_size:
             return True
             
-        ff_str = ff.value
         self.errors.append(
-            f"Motherboard form factor ({ff_str}) is too large "
+            f"Motherboard form factor ({ff.value}) is too large "
             f"for this case type ({pc_case.case_type})."
         )
         return False
 
     
-    #CPU Cooler height must fit inside the Case
+    # CPU Cooler clearance check — air cooler height OR AIO radiator size
     def check_cooler_case(self, cooler: CPUCooler, pc_case: Case) -> bool:
-        if cooler.height_mm is None or pc_case.max_cpu_cooler_height_mm is None:
-            return True  # Cannot validate without dimensions
-        if cooler.height_mm <= pc_case.max_cpu_cooler_height_mm:
-            return True
-        self.errors.append(
-            f"CPU Cooler height ({cooler.height_mm} mm) exceeds Case maximum "
-            f"clearance ({pc_case.max_cpu_cooler_height_mm} mm)."
-        )
-        return False
+        is_compatible = True
+        
+        # Air cooler: check tower height
+        if cooler.height_mm is not None and pc_case.max_cpu_cooler_height_mm is not None:
+            if cooler.height_mm > pc_case.max_cpu_cooler_height_mm:
+                self.errors.append(
+                    f"CPU Cooler height ({cooler.height_mm} mm) exceeds Case maximum "
+                    f"clearance ({pc_case.max_cpu_cooler_height_mm} mm)."
+                )
+                is_compatible = False
+                
+        # AIO: check radiator size vs case radiator support
+        if cooler.radiator_size_mm is not None and pc_case.max_radiator_mm is not None:
+            if cooler.radiator_size_mm > pc_case.max_radiator_mm:
+                self.errors.append(
+                    f"AIO radiator ({cooler.radiator_size_mm}mm) exceeds Case maximum "
+                    f"radiator support ({pc_case.max_radiator_mm}mm)."
+                )
+                is_compatible = False
+        elif cooler.radiator_size_mm is not None and pc_case.max_radiator_mm is None:
+            self.warnings.append(
+                "Case radiator support data is missing. Cannot verify AIO compatibility."
+            )
+                
+        return is_compatible
+    
+    
+    # CPU Cooler must support CPU socket and handle its TDP
+    def check_cooler_cpu(self, cooler: CPUCooler, cpu: CPU) -> bool:
+        is_compatible = True
+        
+        # Socket compatibility
+        if cpu.socket and cooler.supported_sockets:
+            supported = [s.socket for s in cooler.supported_sockets]
+            if cpu.socket not in supported:
+                socket_str = cpu.socket.value
+                self.errors.append(
+                    f"CPU Cooler does not support socket {socket_str}. "
+                    f"Supported: {[s.value for s in supported]}."
+                )
+                is_compatible = False
+        
+        # TDP rating
+        if cpu.tdp and cooler.max_tdp:
+            if cpu.tdp > cooler.max_tdp:
+                self.errors.append(
+                    f"CPU TDP ({cpu.tdp}W) exceeds Cooler maximum rating ({cooler.max_tdp}W)."
+                )
+                is_compatible = False
+            elif cpu.tdp > cooler.max_tdp * 0.9:
+                self.warnings.append(
+                    f"CPU TDP ({cpu.tdp}W) is very close to Cooler maximum ({cooler.max_tdp}W). "
+                    f"May result in thermal throttling under sustained load."
+                )
+                
+        return is_compatible
+
 
     # PSU form factor must match Case
     def check_psu_case(self, psu: PSU, pc_case: Case) -> bool:
         if psu.form_factor == pc_case.psu_form_factor:
             return True
+        psu_ff = getattr(psu.form_factor, 'value', str(psu.form_factor))
+        case_ff = getattr(pc_case.psu_form_factor, 'value', str(pc_case.psu_form_factor))
         self.errors.append(
-            f"PSU form factor ({psu.form_factor.value}) does not match "
-            f"Case PSU bay ({pc_case.psu_form_factor.value})."
+            f"PSU form factor ({psu_ff}) does not match "
+            f"Case PSU bay ({case_ff})."
         )
         return False
 
@@ -208,7 +265,7 @@ class CompatibilityChecker:
         cpu: CPU,
         mobo: Motherboard,
         ram: RAM,
-        gpu: GPU,
+        gpu: Optional[GPU],
         pc_case: Case,
         psu: PSU,
         cooler: Optional[CPUCooler] = None,
@@ -218,14 +275,18 @@ class CompatibilityChecker:
 
         self.check_cpu_motherboard(cpu, mobo)
         self.check_ram_motherboard(ram, mobo)
-        self.check_gpu_case(gpu, pc_case)
+        
+        if gpu:
+            self.check_gpu_case(gpu, pc_case)
+            self.check_gpu_psu_connectors(gpu, psu)
+            
         self.check_power_supply(cpu, gpu, psu)
         self.check_mobo_case(mobo, pc_case)
         self.check_psu_case(psu, pc_case)
-        self.check_gpu_psu_connectors(gpu, psu)
 
         if cooler:
             self.check_cooler_case(cooler, pc_case)
+            self.check_cooler_cpu(cooler, cpu)
 
         return {
             "is_compatible": len(self.errors) == 0,

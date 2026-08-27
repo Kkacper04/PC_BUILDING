@@ -3,20 +3,21 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import Optional
 
 from app.db.base import get_db
 from app.models.components import CPU, GPU, Motherboard, RAM, PSU, Case, CPUCooler
 from app.logic.compatibility import CompatibilityChecker
 from app.ai.ssd_recommender import recommend_best_disc
 from app.api.schemas.build_schemas import (
-    BuildValidationRequest, CompatibilityReport, BottleneckRequest,
+    BuildValidationRequest, CompatibilityReport,
 )
 
 router = APIRouter(tags=["Builds"])
 
 
 def _get_or_404(db: Session, model, obj_id: int, label: str):
-    obj = db.query(model).get(obj_id)
+    obj = db.get(model, obj_id)
     if not obj:
         raise HTTPException(status_code=404, detail=f"{label} with id={obj_id} not found.")
     return obj
@@ -31,9 +32,12 @@ def validate_build(
     cpu = _get_or_404(db, CPU, req.cpu_id, "CPU")
     mobo = _get_or_404(db, Motherboard, req.motherboard_id, "Motherboard")
     ram = _get_or_404(db, RAM, req.ram_id, "RAM")
-    gpu = _get_or_404(db, GPU, req.gpu_id, "GPU")
     case = _get_or_404(db, Case, req.case_id, "Case")
     psu = _get_or_404(db, PSU, req.psu_id, "PSU")
+
+    gpu = None
+    if req.gpu_id:
+        gpu = _get_or_404(db, GPU, req.gpu_id, "GPU")
 
     cooler = None
     if req.cooler_id:
@@ -48,4 +52,7 @@ def validate_build(
 # SSD Recommendation 
 @router.get("/build/recommend-ssd")
 def recommend_ssd(db: Session = Depends(get_db)):
-    return recommend_best_disc(db)
+    result = recommend_best_disc(db)
+    if result is None:
+        raise HTTPException(status_code=404, detail="No SSDs found in database.")
+    return result

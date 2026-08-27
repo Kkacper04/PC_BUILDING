@@ -1,6 +1,7 @@
-﻿from dotenv import load_dotenv
+from dotenv import load_dotenv
 load_dotenv()
 
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -14,10 +15,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — allow frontend (Next.js dev server) to talk to the backend
+# CORS — load from env or default to Next.js dev server
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,9 +31,9 @@ app.include_router(builds_router, prefix="/api/v1")
 
 
 @app.get("/", tags=["Health"])
-def health_check():
+def health_check() -> dict[str, str]:
     return {"status": "ok", "message": "PC Builder API is running"}
 
 
 if __name__ == "__main__":
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

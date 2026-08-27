@@ -22,8 +22,9 @@ def get_engine() -> Engine:
     return create_engine(DATABASE_URL, echo=False, pool_pre_ping=True)
 
 
+@lru_cache(maxsize=1)
 def get_session_factory() -> sessionmaker[Session]:
-    """Return a sessionmaker bound to the cached engine."""
+    """Return a sessionmaker bound to the cached engine (cached on first call)."""
     return sessionmaker(bind=get_engine(), class_=Session, expire_on_commit=False)
 
 

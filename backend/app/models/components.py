@@ -292,7 +292,8 @@ class RAM(_ComponentMixin, Base):
     builds: Mapped[List["Build"]] = relationship(back_populates="ram")
 
     def __repr__(self) -> str:
-        return f"<RAM {self.brand} {self.model} {self.total_capacity_gb}GB {self.ddr_generation.value}-{self.speed_mhz}>"
+        ddr = self.ddr_generation.value if self.ddr_generation else "Unknown"
+        return f"<RAM {self.brand} {self.model} {self.total_capacity_gb}GB {ddr}-{self.speed_mhz}>"
 
 
 
@@ -504,7 +505,8 @@ class PSU(_ComponentMixin, Base):
     builds: Mapped[List["Build"]] = relationship(back_populates="psu")
 
     def __repr__(self) -> str:
-        return f"<PSU {self.brand} {self.model} ({self.wattage}W {self.efficiency_rating.value})>"
+        eff = self.efficiency_rating.value if self.efficiency_rating else "Unknown"
+        return f"<PSU {self.brand} {self.model} ({self.wattage}W {eff})>"
 
 
 
@@ -561,7 +563,8 @@ class CPUCooler(_ComponentMixin, Base):
     builds: Mapped[List["Build"]] = relationship(back_populates="cpu_cooler")
 
     def __repr__(self) -> str:
-        return f"<CPUCooler {self.brand} {self.model} ({self.cooler_type.value})>"
+        ct = self.cooler_type.value if self.cooler_type else "Unknown"
+        return f"<CPUCooler {self.brand} {self.model} ({ct})>"
 
 
 
@@ -608,7 +611,8 @@ class Storage(_ComponentMixin, Base):
     benchmark_score: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     def __repr__(self) -> str:
-        return f"<Storage {self.brand} {self.model} ({self.capacity_gb}GB {self.storage_type.value})>"
+        st = self.storage_type.value if self.storage_type else "Unknown"
+        return f"<Storage {self.brand} {self.model} ({self.capacity_gb}GB {st})>"
 
 
 
