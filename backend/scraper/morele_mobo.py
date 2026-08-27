@@ -1,10 +1,10 @@
 import json
 import logging
+from scraper.playwright_utils import fetch_rendered_html
 from typing import Dict, List, Optional, Any
 import re
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from scraper.loader import setup_database,save_mobo_to_db
+from scraper.loader import save_mobo_to_db
 import time
 from scraper.morele_cpu import  fetch_rendered_html
 
@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 URL_MOBO = "***REMOVED***"
-DEFAULT_TIMEOUT_MS = 30000
 def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")
     json_scripts = soup.find_all("script", type="application/ld+json")

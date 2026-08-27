@@ -1,10 +1,10 @@
 import json
 import logging
+from scraper.playwright_utils import fetch_rendered_html
 from typing import Dict, List, Optional, Any
 import re
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from scraper.loader import setup_database,save_gpu_to_db
+from scraper.loader import save_gpu_to_db
 from scraper.morele_cpu import  fetch_rendered_html
 import time
 
@@ -13,7 +13,6 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 URL_GPU = "***REMOVED***"
-DEFAULT_TIMEOUT_MS = 30000
 
 
 def parse_gpu_json_ld(html_content: str) -> List[Dict[str, Any]]:
@@ -69,8 +68,8 @@ def norm_data(raw_data: dict) -> dict:
 
     vram_txt = raw_data.get("Ilość pamięci RAM", "")
     match_vram = re.search(r'\d+', vram_txt)
-    clean["vram_gb"] = int(match_vram.group()) if match_vram else 8
-    clean["vram_type"] = raw_data.get("Rodzaj pamięci RAM", "GDDR6").strip().upper()
+    clean["vram_gb"] = int(match_vram.group()) if match_vram else None
+    clean["vram_type"] = raw_data.get("Rodzaj pamięci RAM", "").strip().upper() or None
     
     bus_txt = raw_data.get("Szyna danych", "")
     match_bus = re.search(r'\d+', bus_txt)
@@ -78,20 +77,23 @@ def norm_data(raw_data: dict) -> dict:
 
     base_txt = raw_data.get("Taktowanie rdzenia", "")
     match_base = re.search(r'\d+', base_txt)
-    clean["base_clock_mhz"] = int(match_base.group()) if match_base else 2000
+    clean["base_clock_mhz"] = int(match_base.group()) if match_base else None
     
     boost_txt = raw_data.get("Taktowanie rdzenia w trybie boost", "")
     match_boost = re.search(r'\d+', boost_txt)
-    clean["boost_clock_mhz"] = int(match_boost.group()) if match_boost else 2500
+    clean["boost_clock_mhz"] = int(match_boost.group()) if match_boost else None
 
     length_txt = raw_data.get("Długość karty", "")
     match_length = re.search(r'\d+', length_txt)
-    clean["length_mm"] = int(match_length.group()) if match_length else 280
+    clean["length_mm"] = int(match_length.group()) if match_length else None
     
     psu_txt = raw_data.get("Rekomendowana moc zasilacza", "")
     match_psu = re.search(r'\d+', psu_txt)
-    clean["recommended_psu_wattage"] = int(match_psu.group()) if match_psu else 600
-    clean["tdp"] = clean["recommended_psu_wattage"] // 2 
+    clean["recommended_psu_wattage"] = int(match_psu.group()) if match_psu else None
+    
+    tdp_txt = raw_data.get("TDP", "")
+    match_tdp = re.search(r'\d+', tdp_txt)
+    clean["tdp"] = int(match_tdp.group()) if match_tdp else None
 
 
     return clean    

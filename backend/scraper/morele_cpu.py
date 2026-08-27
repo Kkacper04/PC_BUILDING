@@ -1,10 +1,10 @@
 import json
 import logging
+from scraper.playwright_utils import fetch_rendered_html
 from typing import Dict, List, Optional, Any
 import re
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeoutError
-from scraper.loader import setup_database,save_cpu_to_db
+from scraper.loader import save_cpu_to_db
 import time
 
 # Configure standard Python logging
@@ -12,43 +12,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 URL_CPU = "***REMOVED***"
-DEFAULT_TIMEOUT_MS = 30000
 
-def fetch_rendered_html(url: str, page=None) -> Optional[str]:
-    logger.info(f"Navigating to URL: {url}")
-    
-    # Jeśli ktoś przekazał otwartą kartę przeglądarki, używamy jej
-    if page:
-        try:
-            page.goto(url, timeout=DEFAULT_TIMEOUT_MS)
-            page.wait_for_timeout(2000)
-            return page.content()
-        except PlaywrightTimeoutError:
-            logger.error(f"Timeout while trying to load {url}")
-            return None
-            
-    # W przeciwnym razie otwieramy własną i zamykamy (stare zachowanie)
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        new_page = browser.new_page()
-        
-        new_page.set_extra_http_headers({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        })
-        
-        try:
-            new_page.goto(url, timeout=DEFAULT_TIMEOUT_MS)
-            new_page.wait_for_timeout(2000) 
-            return new_page.content()
-            
-        except PlaywrightTimeoutError:
-            logger.error(f"Timeout while trying to load {url}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error during page load: {e}")
-            return None
-        finally:
-            browser.close()
 
 def parse_cpu_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")

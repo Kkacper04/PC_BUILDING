@@ -3,8 +3,8 @@ import json
 import time
 from typing import List, Dict, Any
 from bs4 import BeautifulSoup
-from playwright.sync_api import sync_playwright
 import logging
+from scraper.playwright_utils import fetch_rendered_html
 
 from scraper.loader import save_psu_to_db
 
@@ -12,25 +12,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 URL_PSU = "***REMOVED***"
-DEFAULT_TIMEOUT_MS = 30000
 
 
-def fetch_rendered_html(url: str) -> str:
-    logger.info(f"Initializing headless browser for URL: {url}")
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            page.goto(url, timeout=DEFAULT_TIMEOUT_MS)
-            page.wait_for_selector(".product-specification__table", timeout=10000)
-        except Exception:
-            try:
-                page.wait_for_selector(".cat-product", timeout=5000)
-            except Exception:
-                pass
-        html_content = page.content()
-        browser.close()
-        return html_content
 
 def parse_psu_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")
@@ -109,7 +92,10 @@ def get_spec(url):
 def main():
     logger.info(f"Starting Morele.net PSU scraper. Target: {URL_PSU}")
     raw_html = fetch_rendered_html(URL_PSU)
-    
+    if not raw_html:
+        logger.warning("Failed to retrieve HTML content. Exiting.")
+        return
+        
     psu_list = parse_psu_json_ld(raw_html)
     ready_psu = []
     

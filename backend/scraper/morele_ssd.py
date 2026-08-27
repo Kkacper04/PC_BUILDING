@@ -1,11 +1,12 @@
 import json
 import logging
+from scraper.playwright_utils import fetch_rendered_html
 from typing import Dict, List, Optional, Any
 import re
 import time
 from bs4 import BeautifulSoup
 
-from scraper.loader import setup_database, save_disc_to_db
+from scraper.loader import save_disc_to_db
 from scraper.morele_cpu import fetch_rendered_html
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -120,7 +121,7 @@ def main():
     ready_to_save = []
     
     for ssd in ssd_list[:30]:
-        logger.info(f"Pobieram: {ssd['name']}")
+        logger.info(f"Extracting: {ssd['name']}")
         
         url = ssd.get("url")
         if not url:
@@ -130,14 +131,13 @@ def main():
         ssd.update(spec)
         ready_to_save.append(ssd)
         
-        print("\n=== ZNALEZIONY SSD ===")
-        print(f"Nazwa: {ssd.get('name')}")
-        print(f"Pojemność: {ssd.get('capacity_gb')} GB | Format: {ssd.get('form_factor')}")
-        print(f"Prędkość (Odczyt/Zapis): {ssd.get('read_speed_mbps', 0)} / {ssd.get('write_speed_mbps', 0)} MB/s")
+        print(f"Name: {ssd.get('name')}")
+        print(f"Capacity: {ssd.get('capacity_gb')} GB | Form factor: {ssd.get('form_factor')}")
+        print(f"Speed (Read/Write): {ssd.get('read_speed_mbps', 0)} / {ssd.get('write_speed_mbps', 0)} MB/s")
 
         time.sleep(1.5)
         
-    logger.info("Zakończono pobieranie SSD. Zapisuję do bazy...")
+    logger.info("Finished extracting SSDs. Saving to database...")
     save_disc_to_db(ready_to_save)
 
 if __name__ == "__main__":
