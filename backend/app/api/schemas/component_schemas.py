@@ -16,7 +16,7 @@ class ComponentBase(BaseModel):
 
 
 class CPUResponse(ComponentBase):
-    socket: str
+    socket: Optional[str] = None
     cores: int
     threads: int
     base_clock_mhz: int
@@ -38,15 +38,16 @@ class GPUResponse(ComponentBase):
     boost_clock_mhz: int
     memory_bus_width: Optional[int] = None
     length_mm: int
-    tdp: int
+    width_slots: Optional[Decimal] = None
+    tdp: Optional[int] = None
     recommended_psu_wattage: int
     benchmark_score: int = 0
 
 
 class MotherboardResponse(ComponentBase):
-    socket: str
-    chipset: str
-    form_factor: str
+    socket: Optional[str] = None
+    chipset: Optional[str] = None
+    form_factor: Optional[str] = None
     ddr_generation: str
     ram_slots: int
     max_ram_speed_mhz: int
@@ -100,3 +101,14 @@ class StorageResponse(ComponentBase):
     write_speed_mbps: Optional[int] = None
     nand_type: Optional[str] = None
     tbw: Optional[int] = None
+
+
+class CPUCoolerResponse(ComponentBase):
+    cooler_type: str
+    height_mm: Optional[int] = None
+    radiator_size_mm: Optional[int] = None
+    fan_count: int = 1
+    fan_size_mm: Optional[int] = None
+    max_tdp: int
+    max_noise_dba: Optional[Decimal] = None
+    has_rgb: bool = False

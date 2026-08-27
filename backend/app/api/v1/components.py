@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.db.base import get_db
-from app.models.components import CPU, GPU, Motherboard, RAM, PSU, Case, Storage
+from app.models.components import CPU, GPU, Motherboard, RAM, PSU, Case, Storage, CPUCooler
 from app.api.schemas.component_schemas import (
     CPUResponse, GPUResponse, MotherboardResponse, RAMResponse,
-    PSUResponse, CaseResponse, StorageResponse,
+    PSUResponse, CaseResponse, StorageResponse, CPUCoolerResponse,
 )
 
 router = APIRouter(tags=["Components"])
@@ -116,4 +116,21 @@ def list_storage(
     query = db.query(Storage)
     if min_capacity:
         query = query.filter(Storage.capacity_gb >= min_capacity)
+    return query.offset(offset).limit(limit).all()
+
+
+# CPU Cooler
+@router.get("/coolers", response_model=list[CPUCoolerResponse])
+def list_coolers(
+    cooler_type: Optional[str] = Query(None, description="Filter by type: air, aio_liquid"),
+    min_tdp: Optional[int] = Query(None, description="Minimum TDP dissipation in watts"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    query = db.query(CPUCooler)
+    if cooler_type:
+        query = query.filter(CPUCooler.cooler_type == cooler_type)
+    if min_tdp:
+        query = query.filter(CPUCooler.max_tdp >= min_tdp)
     return query.offset(offset).limit(limit).all()

@@ -14,11 +14,16 @@ def _min_max_normalize(values: list[float]) -> list[float]:
     return [(v - v_min) / spread for v in values]
 
 
-def recommend_best_disc(db: Session):
-    discs = db.query(Storage).all()
+def recommend_best_disc(db: Session) -> dict | None:
+    """Recommend the best SSD based on value score (price/capacity/speed)."""
+    from app.models.enums import StorageType
+    
+    discs = db.query(Storage).filter(
+        Storage.storage_type.in_([StorageType.NVME_SSD, StorageType.SATA_SSD])
+    ).all()
 
     if not discs:
-        return {"error": "No discs available in database"}
+        return None
 
     prices = [float(d.price or 9999.0) for d in discs]
     capacities = [float(d.capacity_gb or 1.0) for d in discs]
@@ -36,13 +41,6 @@ def recommend_best_disc(db: Session):
 
     winner_idx = scores.index(max(scores))
     best_disc = discs[winner_idx]
-
-    print("RECOMMENDED SSD")
-    print(f"Model: {best_disc.name}")
-    print(f"Price: {best_disc.price} PLN")
-    print(f"Capacity: {best_disc.capacity_gb} GB")
-    print(f"Speed: {best_disc.read_speed_mbps} MB/s")
-    print(f"Score: {scores[winner_idx]:.4f} / 1.000")
 
     result_dict = {
         column.name: getattr(best_disc, column.name)
