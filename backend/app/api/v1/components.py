@@ -2,7 +2,7 @@
 #API v1 — Component listing endpoints.
 #Each endpoint returns a filtered list of components from the database.
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
 
@@ -14,6 +14,13 @@ from app.api.schemas.component_schemas import (
 )
 
 router = APIRouter(tags=["Components"])
+
+
+def _get_or_404(db: Session, model, obj_id: int):
+    obj = db.get(model, obj_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail=f"{model.__name__} with id={obj_id} not found.")
+    return obj
 
 
 # CPU 
@@ -32,6 +39,10 @@ def list_cpus(
         query = query.filter(CPU.socket == socket)
     return query.offset(offset).limit(limit).all()
 
+@router.get("/cpus/{item_id}", response_model=CPUResponse)
+def get_cpu(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, CPU, item_id)
+
 
 # GPU
 @router.get("/gpus", response_model=list[GPUResponse])
@@ -48,6 +59,10 @@ def list_gpus(
     if min_vram:
         query = query.filter(GPU.vram_gb >= min_vram)
     return query.offset(offset).limit(limit).all()
+
+@router.get("/gpus/{item_id}", response_model=GPUResponse)
+def get_gpu(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, GPU, item_id)
 
 
 # Motherboard 
@@ -66,6 +81,10 @@ def list_motherboards(
         query = query.filter(Motherboard.form_factor == form_factor)
     return query.offset(offset).limit(limit).all()
 
+@router.get("/motherboards/{item_id}", response_model=MotherboardResponse)
+def get_motherboard(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, Motherboard, item_id)
+
 
 # RAM 
 @router.get("/ram", response_model=list[RAMResponse])
@@ -79,6 +98,10 @@ def list_ram(
     if ddr:
         query = query.filter(RAM.ddr_generation == ddr)
     return query.offset(offset).limit(limit).all()
+
+@router.get("/ram/{item_id}", response_model=RAMResponse)
+def get_ram(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, RAM, item_id)
 
 
 # PSU
@@ -94,6 +117,10 @@ def list_psus(
         query = query.filter(PSU.wattage >= min_wattage)
     return query.offset(offset).limit(limit).all()
 
+@router.get("/psus/{item_id}", response_model=PSUResponse)
+def get_psu(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, PSU, item_id)
+
 
 # Case 
 @router.get("/cases", response_model=list[CaseResponse])
@@ -103,6 +130,10 @@ def list_cases(
     db: Session = Depends(get_db),
 ):
     return db.query(Case).offset(offset).limit(limit).all()
+
+@router.get("/cases/{item_id}", response_model=CaseResponse)
+def get_case(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, Case, item_id)
 
 
 # Storage (SSD/HDD)
@@ -117,6 +148,10 @@ def list_storage(
     if min_capacity:
         query = query.filter(Storage.capacity_gb >= min_capacity)
     return query.offset(offset).limit(limit).all()
+
+@router.get("/storage/{item_id}", response_model=StorageResponse)
+def get_storage(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, Storage, item_id)
 
 
 # CPU Cooler
@@ -134,3 +169,7 @@ def list_coolers(
     if min_tdp:
         query = query.filter(CPUCooler.max_tdp >= min_tdp)
     return query.offset(offset).limit(limit).all()
+
+@router.get("/coolers/{item_id}", response_model=CPUCoolerResponse)
+def get_cooler(item_id: int, db: Session = Depends(get_db)):
+    return _get_or_404(db, CPUCooler, item_id)

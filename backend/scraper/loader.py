@@ -117,11 +117,11 @@ def save_cpu_to_db(cpu_list):
                     model=model_val,
                     price=price,
                     socket=db_socket,
-                    cores=cpu_data.get("cores", 4) or 4,
-                    threads=cpu_data.get("threads") or cpu_data.get("cores", 4),
-                    base_clock_mhz=cpu_data.get("base_clock_mhz", 0),
-                    boost_clock_mhz=cpu_data.get("boost_clock_mhz", 0),
-                    tdp=cpu_data.get("tdp_w") or 65,
+                    cores=cpu_data.get("cores") or 0,
+                    threads=cpu_data.get("threads") or cpu_data.get("cores") or 0,
+                    base_clock_mhz=cpu_data.get("base_clock_mhz") or 0,
+                    boost_clock_mhz=cpu_data.get("boost_clock_mhz") or 0,
+                    tdp=cpu_data.get("tdp_w"),
                     integrated_graphics="Tak" if cpu_data.get("has_integrated_gpu") else "Brak"
                 )
                 session.add(new_cpu)
@@ -154,7 +154,9 @@ def save_mobo_to_db(mobo_list):
                 else: db_socket = None 
                 
                 raw_ddr = str(data.get("ddr_generation", "")).upper()
-                db_ddr = DDRGeneration.DDR4 if "DDR4" in raw_ddr else DDRGeneration.DDR5
+                db_ddr = None
+                if "DDR4" in raw_ddr: db_ddr = DDRGeneration.DDR4
+                elif "DDR5" in raw_ddr: db_ddr = DDRGeneration.DDR5
 
                 raw_form = str(data.get("form_factor", "")).upper()
                 if "MICRO" in raw_form or "UATX" in raw_form or "MATX" in raw_form: db_form = FormFactor.MICRO_ATX
@@ -179,9 +181,9 @@ def save_mobo_to_db(mobo_list):
                     chipset=db_chipset,
                     form_factor=db_form,
                     ddr_generation=db_ddr,
-                    ram_slots=data.get("ram_slots", 4) or 4,
-                    max_ram_speed_mhz=data.get("max_ram_speed_mhz", 4800) or 4800,
-                    max_ram_capacity_gb=data.get("max_ram_capacity_gb", 128) or 128
+                    ram_slots=data.get("ram_slots") or 0,
+                    max_ram_speed_mhz=data.get("max_ram_speed_mhz") or 0,
+                    max_ram_capacity_gb=data.get("max_ram_capacity_gb") or 0
                 )
                 session.add(new_mobo)
                 saved+=1
@@ -212,12 +214,12 @@ def save_gpu_to_db(gpu_list):
                 updated += 1
             else:
                 raw_vram = str(data.get("vram_type", "")).upper()
+                db_vram = None
                 if "GDDR6X" in raw_vram: db_vram = VRAMType.GDDR6X
                 elif "GDDR7" in raw_vram: db_vram = VRAMType.GDDR7
                 elif "GDDR6" in raw_vram: db_vram = VRAMType.GDDR6
                 elif "GDDR5X" in raw_vram: db_vram = VRAMType.GDDR5X
                 elif "GDDR5" in raw_vram: db_vram = VRAMType.GDDR5
-                else: db_vram = VRAMType.GDDR6 
                 
                 new_gpu = GPU(
                     name=data["name"],
@@ -226,17 +228,17 @@ def save_gpu_to_db(gpu_list):
                     price=price,
                     chip_manufacturer=data.get("chip_manufacturer", "Unknown"),
                     gpu_chip=data.get("gpu_chip", "Unknown"),
-                    vram_gb=data.get("vram_gb", 8),
+                    vram_gb=data.get("vram_gb") or 0,
                     vram_type=db_vram,
                     memory_bus_width=data.get("memory_bus_width"),
-                    base_clock_mhz=data.get("base_clock_mhz", 1500),
-                    boost_clock_mhz=data.get("boost_clock_mhz", 1800),
-                    length_mm=data.get("length_mm", 280),
+                    base_clock_mhz=data.get("base_clock_mhz") or 0,
+                    boost_clock_mhz=data.get("boost_clock_mhz") or 0,
+                    length_mm=data.get("length_mm") or 0,
                     width_slots=data.get("width_slots"), 
                     tdp=data.get("tdp"),
-                    recommended_psu_wattage=data.get("recommended_psu_wattage", 550),
-                    pcie_power_8pin=1,
-                    pcie_power_12vhpwr=0
+                    recommended_psu_wattage=data.get("recommended_psu_wattage") or 0,
+                    pcie_power_8pin=data.get("pcie_power_8pin") or 0,
+                    pcie_power_12vhpwr=data.get("pcie_power_12vhpwr") or 0
                 )
                 session.add(new_gpu)
                 saved += 1
@@ -263,7 +265,9 @@ def save_ram_to_db(ram_list):
                 updated += 1
             else:
                 raw_ddr = str(data.get("ddr_generation", "")).upper()
-                db_ddr = DDRGeneration.DDR4 if "DDR4" in raw_ddr else DDRGeneration.DDR5
+                db_ddr = None
+                if "DDR4" in raw_ddr: db_ddr = DDRGeneration.DDR4
+                elif "DDR5" in raw_ddr: db_ddr = DDRGeneration.DDR5
                 
                 new_ram = RAM(
                     name=data["name"],
@@ -271,11 +275,11 @@ def save_ram_to_db(ram_list):
                     model=model_val,
                     price=price,
                     ddr_generation=db_ddr,
-                    speed_mhz=data.get("speed_mhz", 6000),
-                    total_capacity_gb=data.get("total_capacity_gb", 32),
-                    modules=data.get("modules", 2),
-                    capacity_per_module_gb=data.get("capacity_per_module_gb", 16),
-                    cas_latency=data.get("cas_latency", 32),
+                    speed_mhz=data.get("speed_mhz") or 0,
+                    total_capacity_gb=data.get("total_capacity_gb") or 0,
+                    modules=data.get("modules") or 0,
+                    capacity_per_module_gb=data.get("capacity_per_module_gb") or 0,
+                    cas_latency=data.get("cas_latency"),
                     voltage=data.get("voltage", None)  
                 )
                 session.add(new_ram)
@@ -305,25 +309,29 @@ def save_psu_to_db(psu_list):
                 updated += 1
             else:
                 raw_eff = str(data.get("efficiency_rating", "")).upper()
+                db_eff = None
                 if "TITANIUM" in raw_eff: db_eff = EfficiencyRating.TITANIUM
                 elif "PLATINUM" in raw_eff: db_eff = EfficiencyRating.PLATINUM
                 elif "GOLD" in raw_eff: db_eff = EfficiencyRating.GOLD
                 elif "SILVER" in raw_eff: db_eff = EfficiencyRating.SILVER
                 elif "BRONZE" in raw_eff: db_eff = EfficiencyRating.BRONZE
-                else: db_eff = EfficiencyRating.PLUS_80
+                elif "80" in raw_eff or "PLUS" in raw_eff: db_eff = EfficiencyRating.PLUS_80
                 
                 raw_mod = str(data.get("modular_type", "")).upper()
+                db_mod = None
                 if "PEŁNI" in raw_mod or "FULLY" in raw_mod: db_mod = ModularType.FULLY_MODULAR
                 elif "SEMI" in raw_mod or "CZĘŚCIOWO" in raw_mod: db_mod = ModularType.SEMI_MODULAR
-                else: db_mod = ModularType.NON_MODULAR
+                elif "NON" in raw_mod or "BRAK" in raw_mod: db_mod = ModularType.NON_MODULAR
                 
                 raw_form = str(data.get("form_factor", "")).upper()
+                db_form = None
                 if "SFX-L" in raw_form: db_form = PSUFormFactor.SFX_L
                 elif "SFX" in raw_form: db_form = PSUFormFactor.SFX
-                else: db_form = PSUFormFactor.ATX
+                elif "ATX" in raw_form: db_form = PSUFormFactor.ATX
                 
                 def parse_pin(val):
                     if not val or val.lower() == "nie" or val.lower() == "brak": return 0
+                    import re
                     match = re.search(r'\d+', str(val))
                     return int(match.group()) if match else 0
                 
@@ -332,7 +340,7 @@ def save_psu_to_db(psu_list):
                     brand=data.get("brand", "Unknown"), 
                     model=model_val,
                     price=price,
-                    wattage=data.get("wattage", 500),
+                    wattage=data.get("wattage") or 0,
                     efficiency_rating=db_eff,
                     modular_type=db_mod,
                     form_factor=db_form,
@@ -384,18 +392,18 @@ def save_case_to_db(case_list):
                     brand=data.get("brand", "Unknown"), 
                     model=model_val,
                     price=price,
-                    case_type=data.get("case_type", "Midi Tower"),
-                    max_gpu_length_mm=data.get("max_gpu_length_mm", 300),
-                    max_cpu_cooler_height_mm=data.get("max_cpu_cooler_height_mm", 160),
-                    drive_bays_35=data.get("drive_bays_35", 2),
-                    drive_bays_25=data.get("drive_bays_25", 2),
+                    case_type=data.get("case_type", "Unknown"),
+                    max_gpu_length_mm=data.get("max_gpu_length_mm"),
+                    max_cpu_cooler_height_mm=data.get("max_cpu_cooler_height_mm"),
+                    drive_bays_35=data.get("drive_bays_35") or 0,
+                    drive_bays_25=data.get("drive_bays_25") or 0,
                     height_mm=data.get("height_mm"),
                     width_mm=data.get("width_mm"),
                     length_mm=data.get("length_mm"),
                     weight_kg=data.get("weight_kg"),
                     front_io_usb_c=data.get("front_io_usb_c", False),
                     included_fans=0,
-                    max_fan_slots=6,
+                    max_fan_slots=0,
                     has_tempered_glass=data.get("has_tempered_glass", False),
                     psu_form_factor=PSUFormFactor.ATX
                 )
