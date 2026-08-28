@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 import logging
 
 from app.db.base import get_engine, Base
-from app.models.components import Storage, CPU, Motherboard, GPU, RAM, PSU, Case
+from app.models.components import Storage, CPU, Motherboard, GPU, RAM, PSU, Case, CPUCooler
 from app.models.enums import (
     StorageType, StorageFormFactor, StorageInterface, SocketType, 
     ChipsetFamily, FormFactor, DDRGeneration, VRAMType,
@@ -414,3 +414,43 @@ def save_case_to_db(case_list):
         print(f"[DB] Added Cases: {saved}, Updated prices: {updated}")
 
 
+
+
+def save_cooler_to_db(cooler_list):
+    engine = get_engine()
+    with Session(engine) as session:
+        saved = 0
+        updated = 0
+        
+        for data in cooler_list:
+            existing = session.query(CPUCooler).filter(CPUCooler.name == data["name"]).first()
+            price = safe_parse_price(data.get("price"), data["name"])
+            
+            model_val = data.get("model", "Unknown")
+            if existing:
+                existing.price = price
+                if existing.brand == "Unknown" and "brand" in data:
+                    existing.brand = data["brand"]
+                if existing.model == "Unknown" and model_val != "Unknown":
+                    existing.model = model_val
+                updated += 1
+            else:
+                new_cooler = CPUCooler(
+                    name=data["name"],
+                    brand=data.get("brand", "Unknown"), 
+                    model=model_val,
+                    price=price,
+                    cooler_type=data.get("cooler_type", "air"),
+                    height_mm=data.get("height_mm"),
+                    radiator_size_mm=data.get("radiator_size_mm"),
+                    fan_count=data.get("fan_count", 1),
+                    fan_size_mm=data.get("fan_size_mm"),
+                    max_tdp=data.get("max_tdp", 150),
+                    max_noise_dba=data.get("max_noise_dba"),
+                    has_rgb=data.get("has_rgb", False)
+                )
+                session.add(new_cooler)
+                saved += 1
+                
+        session.commit()
+        print(f"[DB] Added CPU Coolers: {saved}, Updated prices: {updated}")
