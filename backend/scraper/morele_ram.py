@@ -114,30 +114,36 @@ def get_spec(url):
     return {}
 
 def main():
-    logger.info("Starting RAM extraction routine via Playwright")
-
-    raw_html = fetch_rendered_html(URL_RAM)
-    if not raw_html:
+    logger.info(f"Starting Morele.net RAM scraper. Target: {URL_RAM}")
+    
+    all_rams = []
+    
+    for page in range(1, 3):  
+        page_url = URL_RAM if page == 1 else f"{URL_RAM}?page={page}"
+        logger.info(f"Fetching page {page}...")
+        raw_html = fetch_rendered_html(page_url)
+        if not raw_html:
+            continue
+        page_items = parse_ram_json_ld(raw_html)
+        all_rams.extend(page_items)
+        
+    if not all_rams:
+        logger.warning("Failed to retrieve any RAMs. Exiting.")
         return
-    ram_list = parse_ram_json_ld(raw_html)
-
+        
     ready_ram = []
-    for ram in ram_list[:24]:
-        url= ram.get("url")
+    
+    for ram in all_rams[:50]:
+        logger.info(f"Extracted -> Price: {ram['price']} PLN | Model: {ram['name']}")
+        url = ram.get("url")
         if not url:
             continue
-
         spec = get_spec(url)
         ram.update(spec)
         ready_ram.append(ram)
-
-        print(f"Nazwa: {ram.get('name')}")
-        print(f"Typ: {ram.get('ddr_generation')} | {ram.get('total_capacity_gb')}GB ({ram.get('modules')}x{ram.get('capacity_per_module_gb')}GB)")
-        print(f"Prędkość: {ram.get('speed_mhz')} MHz | CL {ram.get('cas_latency')} | {ram.get('voltage', 'Brak')} V")
-
         time.sleep(1.5)
 
-    logger.info(f"Successfully extracted {len(ready_ram)} rams to db ")
+    logger.info(f"Successfully extracted {len(ready_ram)} RAM products.")
     save_ram_to_db(ready_ram)
 
 if __name__ == "__main__":

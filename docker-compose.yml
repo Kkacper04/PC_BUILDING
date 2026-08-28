@@ -13,6 +13,45 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pc_network
+
+  backend:
+    build: 
+      context: ./backend
+    container_name: pc_builder_backend
+    restart: always
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://pc_builder:pc_builder_password@postgres:5432/pc_builder
+      CORS_ORIGINS: "http://localhost:5173"
+    ports:
+      - "8000:8000"
+    networks:
+      - pc_network
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: pc_builder_frontend
+    restart: always
+    depends_on:
+      - backend
+    environment:
+      - BACKEND_URL=http://backend:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      # Map local src folder to container to allow hot-reloading during dev
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    networks:
+      - pc_network
 
 volumes:
   postgres_data:
+
+networks:
+  pc_network:
+    driver: bridge
