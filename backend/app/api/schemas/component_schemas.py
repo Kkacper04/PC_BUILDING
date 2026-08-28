@@ -21,7 +21,7 @@ class CPUResponse(ComponentBase):
     threads: int
     base_clock_mhz: int
     boost_clock_mhz: int
-    tdp: int
+    tdp: Optional[int] = None
     l3_cache_mb: Optional[int] = None
     supports_ddr4: bool = False
     supports_ddr5: bool = False
@@ -70,9 +70,9 @@ class RAMResponse(ComponentBase):
 
 class PSUResponse(ComponentBase):
     wattage: int
-    efficiency_rating: str
-    modular_type: str
-    form_factor: str
+    efficiency_rating: Optional[str] = None
+    modular_type: Optional[str] = None
+    form_factor: Optional[str] = None
     pcie_8pin_connectors: int = 0
     has_12vhpwr: bool = False
     num_12vhpwr: int = 0
@@ -89,12 +89,12 @@ class CaseResponse(ComponentBase):
     length_mm: Optional[int] = None
     has_tempered_glass: bool = False
     front_io_usb_c: bool = False
-    psu_form_factor: str
+    psu_form_factor: Optional[str] = None
 
 
 class StorageResponse(ComponentBase):
     storage_type: str
-    form_factor: str
+    form_factor: Optional[str] = None
     interface: str
     capacity_gb: int
     read_speed_mbps: Optional[int] = None
@@ -109,6 +109,6 @@ class CPUCoolerResponse(ComponentBase):
     radiator_size_mm: Optional[int] = None
     fan_count: int = 1
     fan_size_mm: Optional[int] = None
-    max_tdp: int
+    max_tdp: Optional[int] = None
     max_noise_dba: Optional[Decimal] = None
     has_rgb: bool = False

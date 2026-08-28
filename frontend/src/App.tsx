@@ -9,21 +9,21 @@ const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#f97316', // Pomarańczowy (tech/hardware look)
+      main: '#f97316', 
       light: '#fdba74',
       dark: '#c2410c',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#10b981', // Szmaragdowy zielony
+      main: '#10b981', 
     },
     background: {
-      default: '#121212', // Czysty, neutralny ciemny szary
-      paper: '#1e1e1e', // Trochę jaśniejszy szary dla kart
+      default: '#121212', 
+      paper: '#1e1e1e', 
     },
     text: {
-      primary: '#f3f4f6', // Neutralny złamany biały
-      secondary: '#9ca3af', // Neutralny szary
+      primary: '#f3f4f6', 
+      secondary: '#9ca3af', 
     },
   },
   typography: {

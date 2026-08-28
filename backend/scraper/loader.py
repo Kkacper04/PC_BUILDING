@@ -10,7 +10,7 @@ from app.models.components import Storage, CPU, Motherboard, GPU, RAM, PSU, Case
 from app.models.enums import (
     StorageType, StorageFormFactor, StorageInterface, SocketType, 
     ChipsetFamily, FormFactor, DDRGeneration, VRAMType,
-    PSUFormFactor, EfficiencyRating, ModularType
+    PSUFormFactor, EfficiencyRating, ModularType, CoolerType
 )
 
 logger = logging.getLogger(__name__)
@@ -435,12 +435,24 @@ def save_cooler_to_db(cooler_list):
                     existing.model = model_val
                 updated += 1
             else:
+                ctype = data.get("cooler_type", "air")
+                db_cooler_type = CoolerType.AIR
+                if ctype == "aio_liquid":
+                    rad = data.get("radiator_size_mm")
+                    if rad == 120: db_cooler_type = CoolerType.AIO_120
+                    elif rad == 140: db_cooler_type = CoolerType.AIO_140
+                    elif rad == 240: db_cooler_type = CoolerType.AIO_240
+                    elif rad == 280: db_cooler_type = CoolerType.AIO_280
+                    elif rad == 360: db_cooler_type = CoolerType.AIO_360
+                    elif rad == 420: db_cooler_type = CoolerType.AIO_420
+                    else: db_cooler_type = CoolerType.AIO_240 # Fallback
+                
                 new_cooler = CPUCooler(
                     name=data["name"],
                     brand=data.get("brand", "Unknown"), 
                     model=model_val,
                     price=price,
-                    cooler_type=data.get("cooler_type", "air"),
+                    cooler_type=db_cooler_type,
                     height_mm=data.get("height_mm"),
                     radiator_size_mm=data.get("radiator_size_mm"),
                     fan_count=data.get("fan_count", 1),
