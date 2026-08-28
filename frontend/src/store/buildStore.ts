@@ -117,8 +117,8 @@ export const useBuildStore = create<BuildState>()((set, get) => ({
     const { cpu, gpu, motherboard, ram, psu, pcCase, cooler, storage } = get();
     const items = [cpu, gpu, motherboard, ram, psu, pcCase, cooler, storage];
     return items.reduce((sum, item) => {
-      if (item && typeof item.price === 'number') {
-        return sum + item.price;
+      if (item && item.price != null) {
+        return sum + Number(item.price);
       }
       return sum;
     }, 0);

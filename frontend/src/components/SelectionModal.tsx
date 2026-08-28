@@ -21,6 +21,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { TransitionProps } from '@mui/material/transitions';
 import type { ComponentBase } from '../types/api';
 
@@ -82,10 +83,10 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
       slots={{
         transition: Transition,
       }}
-      PaperProps={{
-        sx: {
-          backgroundColor: '#121212',
-        },
+      slotProps={{
+        paper: {
+          sx: { backgroundColor: '#121212' }
+        }
       }}
     >
       <AppBar
@@ -151,7 +152,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
         {isLoading && (
           <Grid container spacing={3}>
             {Array.from({ length: 6 }).map((_, index) => (
-              <Grid xs={12} sm={6} md={4} key={index}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                 <Card
                   sx={{
                     height: '100%',
@@ -184,7 +185,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
               });
 
               return (
-                <Grid xs={12} sm={6} md={4} key={item.id}>
+                <Grid size={{ xs: 12, sm: 6, md: 4 }} key={item.id}>
                   <Card
                     elevation={2}
                     sx={{
@@ -211,16 +212,16 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
                           variant="outlined"
                           sx={{ fontWeight: 600, fontSize: '0.75rem' }}
                         />
-                        <Typography variant="h6" fontWeight={700} color="primary.light">
-                          ${formattedPrice}
+                        <Typography variant="h6" sx={{ fontWeight: 700 }} color="primary.light">
+                          {formattedPrice} zł
                         </Typography>
                       </Box>
 
                       <Typography
                         variant="subtitle1"
-                        fontWeight={600}
                         color="text.primary"
                         sx={{
+                          fontWeight: 600,
                           mt: 1,
                           display: '-webkit-box',
                           WebkitLineClamp: 2,

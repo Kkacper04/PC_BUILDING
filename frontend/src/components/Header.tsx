@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { AppBar, Toolbar, Typography, Chip, Box } from '@mui/material';
 import BuildIcon from '@mui/icons-material/Build';

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
 import {
   Container,
@@ -61,7 +62,7 @@ export const BuilderPage: React.FC = () => {
   const ram = store.ram;
   const gpu = store.gpu;
   const psu = store.psu;
-  const pcCase = store.case ?? (store as any).pcCase;
+  const pcCase = store.pcCase;
   const cooler = store.cooler;
   const storage = store.storage;
 
@@ -160,7 +161,7 @@ export const BuilderPage: React.FC = () => {
   // Store actions helpers
   const handleSelect = (type: ComponentType, item: ComponentBase) => {
     if (typeof store.setComponent === 'function') {
-      store.setComponent(type, item);
+      store.setComponent(type, item as any);
     } else {
       const setterName = `set${type.charAt(0).toUpperCase() + type.slice(1)}`;
       if (typeof (store as any)[setterName] === 'function') {
@@ -188,8 +189,6 @@ export const BuilderPage: React.FC = () => {
   const handleClearBuild = () => {
     if (typeof store.clearBuild === 'function') {
       store.clearBuild();
-    } else if (typeof store.reset === 'function') {
-      store.reset();
     } else {
       slotConfigs.forEach((slot) => handleRemove(slot.type));
     }
@@ -229,7 +228,7 @@ export const BuilderPage: React.FC = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" fontWeight={800} gutterBottom color="text.primary">
+        <Typography variant="h4" sx={{ fontWeight: 800 }} gutterBottom color="text.primary">
           Custom PC Builder
         </Typography>
         <Typography variant="body1" color="text.secondary">
@@ -239,10 +238,10 @@ export const BuilderPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Left Area: 8 Component Slot Cards & Validation Section */}
-        <Grid xs={12} lg={8}>
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Grid container spacing={2}>
             {slotConfigs.map((slot) => (
-              <Grid xs={12} sm={6} key={slot.type}>
+              <Grid size={{ xs: 12, sm: 6 }} key={slot.type}>
                 <ComponentSlot
                   label={slot.label}
                   icon={slot.icon}
@@ -267,7 +266,7 @@ export const BuilderPage: React.FC = () => {
           >
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
               <Box>
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Compatibility Check
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -279,7 +278,7 @@ export const BuilderPage: React.FC = () => {
                 size="large"
                 color="primary"
                 onClick={handleValidateBuild}
-                disabled={validateBuildMutation.isPending || selectedCount === 0}
+                disabled={validateBuildMutation.isPending || !cpu || !motherboard || !ram || !pcCase || !psu}
                 startIcon={
                   validateBuildMutation.isPending ? (
                     <CircularProgress size={20} color="inherit" />
@@ -302,9 +301,17 @@ export const BuilderPage: React.FC = () => {
             {validateBuildMutation.isError && (
               <Alert severity="error" variant="filled" sx={{ mt: 2.5, borderRadius: 2 }}>
                 <AlertTitle>Validation Failed</AlertTitle>
-                {(validateBuildMutation.error as any)?.response?.data?.detail ||
-                  (validateBuildMutation.error as Error)?.message ||
-                  'An error occurred during build validation. Please check that all required parts are selected.'}
+                {(() => {
+                  const detail = (validateBuildMutation.error as any)?.response?.data?.detail;
+                  if (Array.isArray(detail)) {
+                    // Pydantic 422 validation error
+                    return detail.map((err, i) => <div key={i}>{err.msg}</div>);
+                  }
+                  if (typeof detail === 'string') {
+                    return detail;
+                  }
+                  return (validateBuildMutation.error as Error)?.message || 'An error occurred during build validation. Please check that all required parts are selected.';
+                })()}
               </Alert>
             )}
 
@@ -353,7 +360,7 @@ export const BuilderPage: React.FC = () => {
         </Grid>
 
         {/* Right Area: Build Summary Panel */}
-        <Grid xs={12} lg={4}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Card
             elevation={2}
             sx={{
@@ -366,7 +373,7 @@ export const BuilderPage: React.FC = () => {
           >
             <CardContent sx={{ p: 3 }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Build Summary
                 </Typography>
                 <Chip
@@ -393,7 +400,7 @@ export const BuilderPage: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, overflow: 'hidden', mr: 1 }}>
                       <Box sx={{ color: 'text.secondary', display: 'flex' }}>{slot.icon}</Box>
                       <Box sx={{ overflow: 'hidden' }}>
-                        <Typography variant="body2" fontWeight={600} noWrap>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap>
                           {slot.label}
                         </Typography>
                         <Typography
@@ -409,12 +416,11 @@ export const BuilderPage: React.FC = () => {
 
                     <Typography
                       variant="body2"
-                      fontWeight={slot.component ? 700 : 400}
                       color={slot.component ? 'primary.light' : 'text.disabled'}
-                      sx={{ whiteSpace: 'nowrap' }}
+                      sx={{ whiteSpace: 'nowrap', fontWeight: slot.component ? 700 : 400 }}
                     >
                       {slot.component
-                        ? `$${Number(slot.component.price || 0).toFixed(2)}`
+                        ? `${Number(slot.component.price || 0).toFixed(2)} zł`
                         : '—'}
                     </Typography>
                   </Box>
@@ -424,11 +430,11 @@ export const BuilderPage: React.FC = () => {
               <Divider sx={{ my: 2, borderColor: 'rgba(255, 255, 255, 0.12)' }} />
 
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', my: 2 }}>
-                <Typography variant="h6" fontWeight={700}>
+                <Typography variant="h6" sx={{ fontWeight: 700 }}>
                   Total Price:
                 </Typography>
-                <Typography variant="h4" fontWeight={800} color="primary.main">
-                  ${formattedTotalPrice}
+                <Typography variant="h4" sx={{ fontWeight: 800 }} color="primary.main">
+                  {formattedTotalPrice} zł
                 </Typography>
               </Box>
 
@@ -439,7 +445,7 @@ export const BuilderPage: React.FC = () => {
                   color="primary"
                   size="large"
                   onClick={handleValidateBuild}
-                  disabled={validateBuildMutation.isPending || selectedCount === 0}
+                  disabled={validateBuildMutation.isPending || !cpu || !motherboard || !ram || !pcCase || !psu}
                   startIcon={
                     validateBuildMutation.isPending ? (
                       <CircularProgress size={20} color="inherit" />

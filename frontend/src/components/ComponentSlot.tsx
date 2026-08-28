@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { Card, CardContent, Typography, IconButton, Box, Chip } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import CloseIcon from '@mui/icons-material/Close';
@@ -49,7 +49,7 @@ export const ComponentSlot: React.FC<ComponentSlotProps> = ({
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
           <Box sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
             {icon}
-            <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+            <Typography variant="subtitle1" color="text.primary" sx={{ fontWeight: 600 }}>
               {label}
             </Typography>
           </Box>
@@ -109,7 +109,7 @@ export const ComponentSlot: React.FC<ComponentSlotProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'primary.main' }}>
             {icon}
-            <Typography variant="caption" textTransform="uppercase" fontWeight={700} color="text.secondary">
+            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontWeight: 700 }}>
               {label}
             </Typography>
           </Box>
@@ -135,8 +135,8 @@ export const ComponentSlot: React.FC<ComponentSlotProps> = ({
 
         <Typography
           variant="subtitle1"
-          fontWeight={600}
           sx={{
+            fontWeight: 600,
             mt: 0.5,
             color: 'text.primary',
             display: '-webkit-box',
@@ -162,8 +162,8 @@ export const ComponentSlot: React.FC<ComponentSlotProps> = ({
               fontWeight: 500,
             }}
           />
-          <Typography variant="h6" fontWeight={700} color="primary.light">
-            ${formattedPrice}
+          <Typography variant="h6" color="primary.light" sx={{ fontWeight: 700 }}>
+            {formattedPrice} zł
           </Typography>
         </Box>
       </CardContent>
