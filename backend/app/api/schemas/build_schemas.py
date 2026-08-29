@@ -8,6 +8,7 @@ class BuildValidationRequest(BaseModel):
     cpu_id: int
     motherboard_id: int
     ram_id: int
+    ram_quantity: int = 1
     gpu_id: Optional[int] = None  # Optional for APU/iGPU builds
     case_id: int
     psu_id: int

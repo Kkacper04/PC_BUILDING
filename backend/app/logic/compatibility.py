@@ -37,7 +37,7 @@ class CompatibilityChecker:
 
 
     # RAM generation & slot count must match Motherboard
-    def check_ram_motherboard(self, ram: RAM, mobo: Motherboard) -> bool:
+    def check_ram_motherboard(self, ram: RAM, mobo: Motherboard, ram_quantity: int = 1) -> bool:
         is_compatible = True
 
         if not ram.ddr_generation or not mobo.ddr_generation:
@@ -52,10 +52,11 @@ class CompatibilityChecker:
             )
             is_compatible = False
 
-        if ram.modules and mobo.ram_slots and ram.modules > mobo.ram_slots:
+        total_modules = (ram.modules or 1) * ram_quantity
+        if mobo.ram_slots and total_modules > mobo.ram_slots:
             self.errors.append(
-                f"RAM has {ram.modules} modules, but the motherboard "
-                f"only has {mobo.ram_slots} slots."
+                f"You selected {ram_quantity}x kit(s) of {ram.modules} modules ({total_modules} total), "
+                f"but the motherboard only has {mobo.ram_slots} slots!"
             )
             is_compatible = False
 
@@ -199,15 +200,21 @@ class CompatibilityChecker:
         is_compatible = True
         
         # Socket compatibility
-        if cpu.socket and cooler.supported_sockets:
-            supported = [s.socket for s in cooler.supported_sockets]
-            if cpu.socket not in supported:
-                socket_str = cpu.socket.value
-                self.errors.append(
-                    f"CPU Cooler does not support socket {socket_str}. "
-                    f"Supported: {[s.value for s in supported]}."
+        if cpu.socket:
+            if cooler.supported_sockets:
+                supported = [s.socket for s in cooler.supported_sockets]
+                if cpu.socket not in supported:
+                    socket_str = cpu.socket.value
+                    self.errors.append(
+                        f"CPU Cooler does not support socket {socket_str}. "
+                        f"Supported: {[s.value for s in supported]}."
+                    )
+                    is_compatible = False
+            else:
+                self.warnings.append(
+                    f"Cannot verify if the CPU Cooler fits socket {cpu.socket.value} "
+                    f"due to missing manufacturer data. Please verify manually."
                 )
-                is_compatible = False
         
         # TDP rating
         if cpu.tdp and cooler.max_tdp:
@@ -299,6 +306,54 @@ class CompatibilityChecker:
                 
         return is_compatible
 
+
+    # PCIe Bottleneck check
+    def check_pcie_bottleneck(self, gpu: GPU, mobo: Motherboard):
+        if not gpu.name or not mobo.chipset:
+            return
+            
+        gpu_name = gpu.name.upper()
+        mobo_chipset = mobo.chipset.upper()
+        
+        # GPUs known to be PCIe 4.0 x8 (drastically affected by PCIe 3.0)
+        x8_gpus = ["RTX 4060", "RX 7600"]
+        is_x8_gpu = any(g in gpu_name for g in x8_gpus)
+        
+        # Older PCIe 3.0 motherboards
+        pcie3_chipsets = ["B450", "X470", "A320", "H410", "B460", "Z490"]
+        is_pcie3_mobo = any(c in mobo_chipset for c in pcie3_chipsets)
+        
+        if is_x8_gpu and is_pcie3_mobo:
+            self.warnings.append(
+                f"PCIe Bottleneck: The GPU ({gpu.name}) uses a PCIe x8 connection, "
+                f"but the motherboard ({mobo.chipset}) only supports PCIe 3.0. "
+                f"This will noticeably reduce gaming performance."
+            )
+
+    # BIOS Update Warning
+    def check_bios_update(self, cpu: CPU, mobo: Motherboard):
+        if not cpu.name or not mobo.chipset:
+            return
+            
+        cpu_name = cpu.name.upper()
+        mobo_chipset = mobo.chipset.upper()
+        
+        # AM4: Ryzen 5000 on B450/X470/A320
+        is_ryzen_5000 = "RYZEN" in cpu_name and ("5600" in cpu_name or "5700" in cpu_name or "5800" in cpu_name or "5900" in cpu_name or "5950" in cpu_name)
+        if is_ryzen_5000 and any(c in mobo_chipset for c in ["B450", "X470", "A320"]):
+            self.warnings.append(
+                f"BIOS Update Required: Using a newer Ryzen 5000 CPU on an older "
+                f"{mobo.chipset} motherboard will likely require a BIOS update before the PC can boot."
+            )
+            
+        # LGA1700: 13th/14th Gen on B660/Z690
+        is_intel_13_14 = "I3-13" in cpu_name or "I5-13" in cpu_name or "I7-13" in cpu_name or "I9-13" in cpu_name or "I3-14" in cpu_name or "I5-14" in cpu_name or "I7-14" in cpu_name or "I9-14" in cpu_name
+        if is_intel_13_14 and any(c in mobo_chipset for c in ["B660", "Z690", "H610"]):
+            self.warnings.append(
+                f"BIOS Update Required: Using a 13th/14th Gen Intel CPU on an older "
+                f"{mobo.chipset} motherboard will likely require a BIOS update before the PC can boot."
+            )
+
     def validate_build(
         self,
         cpu: CPU,
@@ -309,13 +364,15 @@ class CompatibilityChecker:
         psu: PSU,
         cooler: Optional[CPUCooler] = None,
         storage: Optional[Storage] = None,
+        ram_quantity: int = 1,
     ) -> Dict[str, Any]:
         self.errors.clear()
         self.warnings.clear()
 
         self.check_cpu_motherboard(cpu, mobo)
-        self.check_ram_motherboard(ram, mobo)
+        self.check_ram_motherboard(ram, mobo, ram_quantity)
         self.check_display_output(cpu, gpu)
+        self.check_bios_update(cpu, mobo)
         
         if storage:
             self.check_storage_motherboard(storage, mobo)
@@ -323,6 +380,7 @@ class CompatibilityChecker:
         if gpu:
             self.check_gpu_case(gpu, pc_case)
             self.check_gpu_psu_connectors(gpu, psu)
+            self.check_pcie_bottleneck(gpu, mobo)
             
         self.check_power_supply(cpu, gpu, psu)
         self.check_mobo_case(mobo, pc_case)

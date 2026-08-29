@@ -48,7 +48,7 @@ def validate_build(
         storage = _get_or_404(db, Storage, req.storage_id, "Storage")
 
     checker = CompatibilityChecker()
-    result = checker.validate_build(cpu, mobo, ram, gpu, case, psu, cooler, storage)
+    result = checker.validate_build(cpu, mobo, ram, gpu, case, psu, cooler, storage, req.ram_quantity)
 
     return CompatibilityReport(**result)
 
