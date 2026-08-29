@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.db.base import get_db
-from app.models.components import CPU, GPU, Motherboard, RAM, PSU, Case, CPUCooler
+from app.models.components import CPU, GPU, Motherboard, RAM, PSU, Case, CPUCooler, Storage
 from app.logic.compatibility import CompatibilityChecker
 from app.ai.ssd_recommender import recommend_best_disc
 from app.api.schemas.build_schemas import (
@@ -42,9 +42,13 @@ def validate_build(
     cooler = None
     if req.cooler_id:
         cooler = _get_or_404(db, CPUCooler, req.cooler_id, "CPU Cooler")
+        
+    storage = None
+    if req.storage_id:
+        storage = _get_or_404(db, Storage, req.storage_id, "Storage")
 
     checker = CompatibilityChecker()
-    result = checker.validate_build(cpu, mobo, ram, gpu, case, psu, cooler)
+    result = checker.validate_build(cpu, mobo, ram, gpu, case, psu, cooler, storage)
 
     return CompatibilityReport(**result)
 

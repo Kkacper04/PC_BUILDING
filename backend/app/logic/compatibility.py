@@ -1,6 +1,6 @@
 from typing import Dict, Any, Optional
-from app.models.components import CPU, Motherboard, RAM, GPU, Case, PSU, CPUCooler
-from app.models.enums import FormFactor
+from app.models.components import CPU, Motherboard, RAM, GPU, Case, PSU, CPUCooler, Storage
+from app.models.enums import FormFactor, StorageFormFactor
 
 
 # Form factor size hierarchy (larger index = physically larger board)
@@ -260,6 +260,45 @@ class CompatibilityChecker:
         return is_compatible
 
     
+
+    # 1. Missing Video Output Check
+    def check_display_output(self, cpu: CPU, gpu: Optional[GPU]) -> bool:
+        if gpu is not None:
+            return True
+        # If no GPU, CPU must have integrated graphics
+        if cpu.integrated_graphics and cpu.integrated_graphics.lower() != "brak":
+            return True
+        
+        self.errors.append(
+            f"No video output! The selected CPU ({cpu.name}) does not have integrated graphics. "
+            f"You must add a dedicated GPU, otherwise the PC will not display anything."
+        )
+        return False
+
+    # 2. Storage vs Motherboard
+    def check_storage_motherboard(self, storage: Storage, mobo: Motherboard) -> bool:
+        is_compatible = True
+        
+        # Check M.2 NVMe vs Motherboard M.2 slots
+        if storage.form_factor in [StorageFormFactor.M2_2280, StorageFormFactor.M2_2230]:
+            if mobo.m2_slots == 0:
+                self.errors.append(
+                    f"Selected storage is M.2 ({storage.form_factor.value}), "
+                    f"but the Motherboard has no M.2 slots."
+                )
+                is_compatible = False
+        
+        # Check SATA vs Motherboard SATA ports
+        elif storage.form_factor in [StorageFormFactor.INCH_2_5, StorageFormFactor.INCH_3_5]:
+            if mobo.sata_ports == 0:
+                self.errors.append(
+                    f"Selected storage is SATA ({storage.form_factor.value}), "
+                    f"but the Motherboard has no SATA ports."
+                )
+                is_compatible = False
+                
+        return is_compatible
+
     def validate_build(
         self,
         cpu: CPU,
@@ -269,12 +308,17 @@ class CompatibilityChecker:
         pc_case: Case,
         psu: PSU,
         cooler: Optional[CPUCooler] = None,
+        storage: Optional[Storage] = None,
     ) -> Dict[str, Any]:
         self.errors.clear()
         self.warnings.clear()
 
         self.check_cpu_motherboard(cpu, mobo)
         self.check_ram_motherboard(ram, mobo)
+        self.check_display_output(cpu, gpu)
+        
+        if storage:
+            self.check_storage_motherboard(storage, mobo)
         
         if gpu:
             self.check_gpu_case(gpu, pc_case)

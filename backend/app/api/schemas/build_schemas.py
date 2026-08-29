@@ -12,6 +12,7 @@ class BuildValidationRequest(BaseModel):
     case_id: int
     psu_id: int
     cooler_id: Optional[int] = None
+    storage_id: Optional[int] = None
 
 
 class CompatibilityReport(BaseModel):
