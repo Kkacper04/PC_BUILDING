@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import json
 import logging
 from scraper.playwright_utils import fetch_rendered_html
@@ -7,12 +10,12 @@ import time
 from bs4 import BeautifulSoup
 
 from scraper.loader import save_disc_to_db
-from scraper.morele_cpu import fetch_rendered_html
+from scraper.playwright_utils import fetch_rendered_html
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-URL_SSD = "***REMOVED***"
+URL_SSD = os.getenv("SCRAPER_URL_SSD")
 
 def parse_ssd_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")

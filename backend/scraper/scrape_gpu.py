@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import json
 import logging
 from scraper.playwright_utils import fetch_rendered_html
@@ -5,14 +8,14 @@ from typing import Dict, List, Optional, Any
 import re
 from bs4 import BeautifulSoup
 from scraper.loader import save_gpu_to_db
-from scraper.morele_cpu import  fetch_rendered_html
+from scraper.playwright_utils import fetch_rendered_html
 import time
 
 # Configure standard Python logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-URL_GPU = "***REMOVED***"
+URL_GPU = os.getenv("SCRAPER_URL_GPU")
 
 
 def parse_gpu_json_ld(html_content: str) -> List[Dict[str, Any]]:

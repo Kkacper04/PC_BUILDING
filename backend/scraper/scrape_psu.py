@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import re
 import json
 import time
@@ -11,7 +14,7 @@ from scraper.loader import save_psu_to_db
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-URL_PSU = "***REMOVED***"
+URL_PSU = os.getenv("SCRAPER_URL_PSU")
 
 
 

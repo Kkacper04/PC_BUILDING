@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import re
 import json
 import time
@@ -11,7 +14,7 @@ from scraper.playwright_utils import fetch_rendered_html
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-URL_CASE = "***REMOVED***"
+URL_CASE = os.getenv("SCRAPER_URL_CASE")
 
 def parse_case_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")

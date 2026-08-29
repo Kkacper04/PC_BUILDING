@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import json
 import logging
 from scraper.playwright_utils import fetch_rendered_html
@@ -6,13 +9,13 @@ import re
 from bs4 import BeautifulSoup
 from scraper.loader import save_mobo_to_db
 import time
-from scraper.morele_cpu import  fetch_rendered_html
+from scraper.playwright_utils import fetch_rendered_html
 
 # Configure standard Python logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-URL_MOBO = "***REMOVED***"
+URL_MOBO = os.getenv("SCRAPER_URL_MOBO")
 def parse_mobo_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")
     json_scripts = soup.find_all("script", type="application/ld+json")

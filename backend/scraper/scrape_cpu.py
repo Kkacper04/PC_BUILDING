@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import json
 import logging
 from scraper.playwright_utils import fetch_rendered_html
@@ -11,7 +14,7 @@ import time
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-URL_CPU = "***REMOVED***"
+URL_CPU = os.getenv("SCRAPER_URL_CPU")
 
 
 def parse_cpu_json_ld(html_content: str) -> List[Dict[str, Any]]:

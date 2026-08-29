@@ -1,3 +1,6 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()
 import re
 import json
 import time
@@ -12,7 +15,7 @@ from scraper.loader import save_cooler_to_db
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-URL_COOLER = "***REMOVED***"
+URL_COOLER = os.getenv("SCRAPER_URL_COOLER")
 
 def parse_cooler_json_ld(html_content: str) -> List[Dict[str, Any]]:
     soup = BeautifulSoup(html_content, "lxml")
