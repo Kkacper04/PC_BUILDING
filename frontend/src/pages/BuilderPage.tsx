@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
   Container,
   Grid,
@@ -44,6 +45,17 @@ import {
 } from '../api/queries';
 import { useBuildStore } from '../store/buildStore';
 import type { ComponentBase, ComponentType } from '../types/api';
+import { decodeBuildFromUrl, hasBuildParams } from '../utils/shareBuild';
+import {
+  fetchCPU,
+  fetchMotherboard,
+  fetchRAMItem,
+  fetchGPU,
+  fetchPSU,
+  fetchCase,
+  fetchCooler,
+  fetchStorageItem,
+} from '../api/queries';
 
 interface SlotConfig {
   type: ComponentType;
@@ -57,6 +69,7 @@ interface SlotConfig {
 
 export const BuilderPage: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ComponentType | null>(null);
+  const location = useLocation();
 
   // Store access
   const store = useBuildStore();
@@ -68,6 +81,28 @@ export const BuilderPage: React.FC = () => {
   const pcCase = store.pcCase;
   const cooler = store.cooler;
   const storage = store.storage;
+
+  // Load shared build from URL parameters
+  useEffect(() => {
+    if (!hasBuildParams(location.search)) return;
+    const ids = decodeBuildFromUrl(location.search);
+    const load = async () => {
+      try {
+        if (ids.cpu) store.setComponent('cpu', await fetchCPU(ids.cpu) as any);
+        if (ids.motherboard) store.setComponent('motherboard', await fetchMotherboard(ids.motherboard) as any);
+        if (ids.ram) store.setComponent('ram', await fetchRAMItem(ids.ram) as any);
+        if (ids.gpu) store.setComponent('gpu', await fetchGPU(ids.gpu) as any);
+        if (ids.psu) store.setComponent('psu', await fetchPSU(ids.psu) as any);
+        if (ids.case) store.setComponent('case', await fetchCase(ids.case) as any);
+        if (ids.cooler) store.setComponent('cooler', await fetchCooler(ids.cooler) as any);
+        if (ids.storage) store.setComponent('storage', await fetchStorageItem(ids.storage) as any);
+      } catch (err) {
+        console.error('Failed to load shared build:', err);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   // React Query hooks for each component type
   const cpusQuery = useCPUs();
