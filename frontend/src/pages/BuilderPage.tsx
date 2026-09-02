@@ -28,6 +28,7 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 import { ComponentSlot } from '../components/ComponentSlot';
 import { SelectionModal } from '../components/SelectionModal';
+import { WattageCalculator } from '../components/WattageCalculator';
 import {
   useCPUs,
   useMotherboards,
@@ -426,6 +427,8 @@ export const BuilderPage: React.FC = () => {
                   </Box>
                 ))}
               </Stack>
+
+              <WattageCalculator cpu={cpu} gpu={gpu} psu={psu} />
 
               <Divider sx={{ my: 2, borderColor: 'rgba(255, 255, 255, 0.12)' }} />
 
