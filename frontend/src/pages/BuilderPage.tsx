@@ -29,6 +29,8 @@ import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import { ComponentSlot } from '../components/ComponentSlot';
 import { SelectionModal } from '../components/SelectionModal';
 import { WattageCalculator } from '../components/WattageCalculator';
+import { ShareBuildButton } from '../components/ShareBuildButton';
+import { ExportBuildPDF } from '../components/ExportBuildPDF';
 import {
   useCPUs,
   useMotherboards,
@@ -480,6 +482,26 @@ export const BuilderPage: React.FC = () => {
                     Clear All Components
                   </Button>
                 )}
+
+                <ShareBuildButton
+                  buildIds={{
+                    cpu: cpu?.id,
+                    motherboard: motherboard?.id,
+                    ram: ram?.id,
+                    gpu: gpu?.id,
+                    psu: psu?.id,
+                    case: pcCase?.id,
+                    cooler: cooler?.id,
+                    storage: storage?.id,
+                  }}
+                  disabled={selectedCount === 0}
+                />
+
+                <ExportBuildPDF
+                  components={slotConfigs.map((s) => ({ label: s.label, component: s.component }))}
+                  totalPrice={totalPrice}
+                  disabled={selectedCount === 0}
+                />
               </Stack>
             </CardContent>
           </Card>
