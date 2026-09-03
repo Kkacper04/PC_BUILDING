@@ -5,9 +5,11 @@ A full-stack web application designed to help users build custom PCs. The platfo
 ## Core Features
 
 * **Advanced Compatibility Engine**: Validates CPU sockets, motherboard form factors, RAM capacity/speed, PSU wattage, GPU physical clearance, and detects potential bottlenecks (e.g., PCIe generation mismatches or required BIOS updates).
-* **Automated Data Scraping**: Built-in Python scrapers using Playwright to extract up-to-date hardware specifications and prices from e-commerce sites.
-* **Responsive UI**: A modern, interactive React frontend built with Material-UI and managed by Zustand.
-* **Containerized Environment**: Full Docker support for seamless local development and deployment.
+- **Automated Web Scraping**: Live components pricing and specifications parsed directly from major retailers using asynchronous Playwright instances.
+- **Dynamic Frontend**: Modern UI built with React, Material-UI (MUI), and Zustand for state management.
+- **Share & Export**: Share your custom builds easily with generated URLs, or export them to a professional PDF summary.
+- **Estimated Power Draw**: Real-time wattage calculator for the selected components.
+- **Dockerized Architecture**: Simplified deployment and orchestration with Docker Compose.
 
 ## Screenshots
 
