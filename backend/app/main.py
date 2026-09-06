@@ -1,4 +1,4 @@
-from dotenv import load_dotenv
+﻿from dotenv import load_dotenv
 load_dotenv()
 
 import os
@@ -8,6 +8,7 @@ import uvicorn
 
 from app.api.v1.components import router as components_router
 from app.api.v1.builds import router as builds_router
+from app.api.v1.ai import router as ai_router
 
 app = FastAPI(
     title="PC Builder API",
@@ -15,7 +16,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS — load from env or default to Next.js dev server
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
 app.add_middleware(
     CORSMiddleware,
@@ -25,9 +25,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers
 app.include_router(components_router, prefix="/api/v1")
 app.include_router(builds_router, prefix="/api/v1")
+app.include_router(ai_router, prefix="/api/v1")
 
 
 @app.get("/", tags=["Health"])
