@@ -115,6 +115,10 @@ def get_spec(url):
 def main():
     logger.info("Starting SSD extraction routine via Playwright")
     
+    if not URL_SSD:
+        logger.error("SCRAPER_URL_SSD is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_SSD)
     if not raw_html:
         logger.warning("Failed to retrieve HTML content. Exiting.")

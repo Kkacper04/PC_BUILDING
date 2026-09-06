@@ -129,6 +129,10 @@ def get_spec(url):
 def main():
     logger.info("Starting GPU extraction routine via Playwright")
     
+    if not URL_GPU:
+        logger.error("SCRAPER_URL_GPU is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_GPU)
     if not raw_html:
         logger.warning("Failed to retrieve HTML content. Exiting.")

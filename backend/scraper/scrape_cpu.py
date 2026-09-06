@@ -132,6 +132,10 @@ def get_spec(url):
 def main():
     logger.info("Starting CPU extraction routine via Playwright")
     
+    if not URL_CPU:
+        logger.error("SCRAPER_URL_CPU is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_CPU)
     if not raw_html:
         logger.warning("Failed to retrieve HTML content. Exiting.")

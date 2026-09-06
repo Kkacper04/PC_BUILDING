@@ -118,6 +118,10 @@ def get_spec(url):
 
 def main():
     logger.info(f"Starting Morele.net Cooler scraper. Target: {URL_COOLER}")
+    if not URL_COOLER:
+        logger.error("SCRAPER_URL_COOLER is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_COOLER)
     if not raw_html:
         logger.warning("Failed to retrieve HTML content. Exiting.")

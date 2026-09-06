@@ -115,6 +115,10 @@ def get_spec(url):
 
 def main():
     logger.info(f"Starting Morele.net Case scraper. Target: {URL_CASE}")
+    if not URL_CASE:
+        logger.error("SCRAPER_URL_CASE is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_CASE)
     if not raw_html:
         logger.warning("Failed to retrieve HTML content. Exiting.")

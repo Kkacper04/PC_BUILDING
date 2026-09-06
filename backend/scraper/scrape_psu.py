@@ -94,6 +94,10 @@ def get_spec(url):
 
 def main():
     logger.info(f"Starting Morele.net PSU scraper. Target: {URL_PSU}")
+    if not URL_PSU:
+        logger.error("SCRAPER_URL_PSU is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_PSU)
     if not raw_html:
         logger.warning("Failed to retrieve HTML content. Exiting.")

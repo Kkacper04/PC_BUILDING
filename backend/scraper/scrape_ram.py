@@ -119,6 +119,10 @@ def get_spec(url):
 def main():
     logger.info(f"Starting Morele.net RAM scraper. Target: {URL_RAM}")
     
+    if not URL_RAM:
+        logger.error("SCRAPER_URL_RAM is not set in .env")
+        return
+        
     all_rams = []
     
     for page in range(1, 3):  

@@ -107,6 +107,10 @@ def get_spec(url):
 def main():
     logger.info("Starting Motherboard extraction routine via Playwright")
 
+    if not URL_MOBO:
+        logger.error("SCRAPER_URL_MOBO is not set in .env")
+        return
+        
     raw_html = fetch_rendered_html(URL_MOBO)
     if not raw_html:
         return
