@@ -23,6 +23,8 @@ services:
     restart: always
     depends_on:
       - postgres
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql://pc_builder:pc_builder_password@postgres:5432/pc_builder
       CORS_ORIGINS: "http://localhost:5173"

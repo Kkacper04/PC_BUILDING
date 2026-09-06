@@ -10,4 +10,4 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     message: str
-    suggested_build: Optional[Dict[str, int]] = None
+    suggested_build: Optional[Dict[str, Optional[int]]] = None
