@@ -17,13 +17,15 @@ import {
   Button,
   Chip,
   Skeleton,
-} from '@mui/material';
+} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import type { TransitionProps } from '@mui/material/transitions';
 import type { ComponentBase } from '../types/api';
+import { useBuildStore } from '../store/buildStore';
+import { checkComponentCompatibility } from '../utils/suggest_build';
 
 const Transition = React.forwardRef(function Transition(
   props: TransitionProps & {
@@ -33,6 +35,7 @@ const Transition = React.forwardRef(function Transition(
 ) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
+
 
 export interface SelectionModalProps {
   open: boolean;
@@ -52,6 +55,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
   onSelect,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const currentBuild = useBuildStore((state) => state);
 
   const filteredItems = useMemo(() => {
     if (!items || !Array.isArray(items)) return [];
@@ -109,7 +113,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4, flex: 1, display: 'flex', flexDirection: 'column' }}>
-        {/* Search Bar */}
+        
         <Box sx={{ mb: 4 }}>
           <TextField
             fullWidth
@@ -148,7 +152,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
           />
         </Box>
 
-        {/* Loading Skeletons */}
+        
         {isLoading && (
           <Grid container spacing={3}>
             {Array.from({ length: 6 }).map((_, index) => (
@@ -175,10 +179,14 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
           </Grid>
         )}
 
-        {/* Items List */}
         {!isLoading && filteredItems.length > 0 && (
           <Grid container spacing={3}>
             {filteredItems.map((item) => {
+              const categoryName = title.split(' ').pop() || '';
+              const status = checkComponentCompatibility(item, categoryName, currentBuild);
+              const isCompatible = status === 'COMPATIBLE';
+              const isIncompatible = status === 'INCOMPATIBLE';
+              
               const formattedPrice = Number(item.price || 0).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
@@ -193,9 +201,14 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
                       display: 'flex',
                       flexDirection: 'column',
                       backgroundColor: '#1e1e1e',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
                       borderRadius: 2,
                       transition: 'transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease',
+                      opacity: isIncompatible ? 0.3 : 1,
+                      border: isCompatible 
+                              ? '2px solid #4caf50' 
+                              : isIncompatible 
+                                ? '1px solid rgba(244, 67, 54, 0.5)' 
+                                : '1px solid rgba(255, 255, 255, 0.1)',
                       '&:hover': {
                         transform: 'translateY(-3px)',
                         borderColor: 'primary.main',
@@ -264,7 +277,7 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
           </Grid>
         )}
 
-        {/* Empty Search / Empty Data state */}
+        
         {!isLoading && filteredItems.length === 0 && (
           <Box
             sx={{
