@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { AppBar, Toolbar, Typography, Chip, Box } from '@mui/material';
 import BuildIcon from '@mui/icons-material/Build';
@@ -6,32 +5,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useBuildStore } from '../store/buildStore';
 
 export const Header: React.FC = () => {
-  const totalPrice = useBuildStore((state: any) => {
-    if (typeof state.getTotalPrice === 'function') {
-      return state.getTotalPrice();
-    }
-    if (typeof state.totalPrice === 'number') {
-      return state.totalPrice;
-    }
-    const components = state.components || [
-      state.cpu,
-      state.motherboard,
-      state.ram,
-      state.gpu,
-      state.psu,
-      state.case ?? state.pcCase,
-      state.cooler,
-      state.storage,
-    ].filter(Boolean);
-
-    if (Array.isArray(components)) {
-      return components.reduce((sum: number, item: any) => sum + (Number(item?.price) || 0), 0);
-    }
-    if (typeof components === 'object') {
-      return Object.values(components).reduce((sum: number, item: any) => sum + (Number(item?.price) || 0), 0);
-    }
-    return 0;
-  });
+  const totalPrice = useBuildStore((state) => state.getTotalPrice());
 
   const formattedPrice = Number(totalPrice || 0).toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -66,7 +40,7 @@ export const Header: React.FC = () => {
 
         <Chip
           icon={<ShoppingCartIcon sx={{ fontSize: 18, color: '#ffffff !important' }} />}
-          label={`Total: $${formattedPrice}`}
+          label={`Total: ${formattedPrice} zł`}
           color="primary"
           sx={{
             fontWeight: 600,

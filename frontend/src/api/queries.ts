@@ -21,6 +21,8 @@ import type {
   CoolerQueryParams,
   StorageQueryParams,
   SSDRecommendParams,
+  ChatMessage,
+  ChatResponse,
 } from '../types/api';
 
 export const fetchCPUs = async (params?: CPUQueryParams): Promise<CPUResponse[]> => {
@@ -317,10 +319,8 @@ export const useSSDRecommendation = (
   });
 };
 
-import type { ChatMessage, ChatResponse } from '../types/api';
-
 export const chatWithAi = async (messages: ChatMessage[]): Promise<ChatResponse> => {
-  const { data } = await apiClient.post<ChatResponse>('/api/v1/ai/chat', { messages });
+  const { data } = await apiClient.post<ChatResponse>('/ai/chat', { messages });
   return data;
 };
 

@@ -30,16 +30,15 @@ export const AiChatWidget: React.FC = () => {
     onSuccess: (data) => {
       addMessage({ role: 'assistant', content: data.message });
       if (data.suggested_build) {
-        // Dodaj ukrytą wiadomość systemową, żeby wyrenderować przycisk akceptacji dla tego buildu
         addMessage({ role: 'system', content: JSON.stringify(data.suggested_build) });
       }
     },
     onError: () => {
-      addMessage({ role: 'assistant', content: 'Wystąpił błąd podczas łączenia z AI. Upewnij się, że lokalny model jest uruchomiony.' });
+      addMessage({ role: 'assistant', content: 'Failed to connect to AI. Make sure the local model is running.' });
     }
   });
 
-  // Auto-scroll w dół
+  // Auto-scroll to bottom
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -53,7 +52,7 @@ export const AiChatWidget: React.FC = () => {
     addMessage(userMsg);
     setInputValue('');
 
-    // Tworzymy payload wysyłając tylko role user i assistant (bez naszych systemowych buttonów)
+    // Filter out system messages (action buttons) before sending to API
     const payload = messages.filter(m => m.role !== 'system').concat(userMsg);
     chatMutation.mutate(payload);
   };
@@ -81,7 +80,7 @@ export const AiChatWidget: React.FC = () => {
 
       await Promise.all(promises);
     } catch (err) {
-      console.error("Błąd podczas ładowania proponowanego zestawu:", err);
+      console.error("Failed to apply suggested build:", err);
     }
   };
 

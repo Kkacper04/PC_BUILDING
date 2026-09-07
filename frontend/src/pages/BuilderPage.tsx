@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
@@ -42,11 +41,6 @@ import {
   useCoolers,
   useStorage,
   useValidateBuild,
-} from '../api/queries';
-import { useBuildStore } from '../store/buildStore';
-import type { ComponentBase, ComponentType } from '../types/api';
-import { decodeBuildFromUrl, hasBuildParams } from '../utils/shareBuild';
-import {
   fetchCPU,
   fetchMotherboard,
   fetchRAMItem,
@@ -56,6 +50,9 @@ import {
   fetchCooler,
   fetchStorageItem,
 } from '../api/queries';
+import { useBuildStore } from '../store/buildStore';
+import type { ComponentBase, ComponentType } from '../types/api';
+import { decodeBuildFromUrl, hasBuildParams } from '../utils/shareBuild';
 
 interface SlotConfig {
   type: ComponentType;
@@ -71,7 +68,6 @@ export const BuilderPage: React.FC = () => {
   const [activeModal, setActiveModal] = useState<ComponentType | null>(null);
   const location = useLocation();
 
-  // Store access
   const store = useBuildStore();
   const cpu = store.cpu;
   const motherboard = store.motherboard;
@@ -82,29 +78,28 @@ export const BuilderPage: React.FC = () => {
   const cooler = store.cooler;
   const storage = store.storage;
 
-  // Load shared build from URL parameters
   useEffect(() => {
     if (!hasBuildParams(location.search)) return;
     const ids = decodeBuildFromUrl(location.search);
     const load = async () => {
       try {
-        if (ids.cpu) store.setComponent('cpu', await fetchCPU(ids.cpu) as any);
-        if (ids.motherboard) store.setComponent('motherboard', await fetchMotherboard(ids.motherboard) as any);
-        if (ids.ram) store.setComponent('ram', await fetchRAMItem(ids.ram) as any);
-        if (ids.gpu) store.setComponent('gpu', await fetchGPU(ids.gpu) as any);
-        if (ids.psu) store.setComponent('psu', await fetchPSU(ids.psu) as any);
-        if (ids.case) store.setComponent('case', await fetchCase(ids.case) as any);
-        if (ids.cooler) store.setComponent('cooler', await fetchCooler(ids.cooler) as any);
-        if (ids.storage) store.setComponent('storage', await fetchStorageItem(ids.storage) as any);
+        const promises = [];
+        if (ids.cpu) promises.push(fetchCPU(ids.cpu).then(c => store.setComponent('cpu', c as any)));
+        if (ids.motherboard) promises.push(fetchMotherboard(ids.motherboard).then(c => store.setComponent('motherboard', c as any)));
+        if (ids.ram) promises.push(fetchRAMItem(ids.ram).then(c => store.setComponent('ram', c as any)));
+        if (ids.gpu) promises.push(fetchGPU(ids.gpu).then(c => store.setComponent('gpu', c as any)));
+        if (ids.psu) promises.push(fetchPSU(ids.psu).then(c => store.setComponent('psu', c as any)));
+        if (ids.case) promises.push(fetchCase(ids.case).then(c => store.setComponent('case', c as any)));
+        if (ids.cooler) promises.push(fetchCooler(ids.cooler).then(c => store.setComponent('cooler', c as any)));
+        if (ids.storage) promises.push(fetchStorageItem(ids.storage).then(c => store.setComponent('storage', c as any)));
+        await Promise.all(promises);
       } catch (err) {
         console.error('Failed to load shared build:', err);
       }
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
-  // React Query hooks for each component type
   const cpusQuery = useCPUs();
   const motherboardsQuery = useMotherboards();
   const ramQuery = useRAM();
@@ -114,13 +109,11 @@ export const BuilderPage: React.FC = () => {
   const coolersQuery = useCoolers();
   const storageQuery = useStorage();
 
-  // Validation mutation
   const validateBuildMutation = useValidateBuild();
 
-  // Config array mapping each ComponentType to label, icon, and query data
   const slotConfigs: SlotConfig[] = [
     {
-      type: 'cpu' as ComponentType,
+      type: 'cpu',
       label: 'Processor',
       modalTitle: 'Select a Processor (CPU)',
       icon: <MemoryIcon fontSize="medium" />,
@@ -129,7 +122,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: cpusQuery.isLoading,
     },
     {
-      type: 'motherboard' as ComponentType,
+      type: 'motherboard',
       label: 'Motherboard',
       modalTitle: 'Select a Motherboard',
       icon: <DeveloperBoardIcon fontSize="medium" />,
@@ -138,7 +131,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: motherboardsQuery.isLoading,
     },
     {
-      type: 'ram' as ComponentType,
+      type: 'ram',
       label: 'Memory (RAM)',
       modalTitle: 'Select Memory (RAM)',
       icon: <MemoryIcon fontSize="medium" />,
@@ -147,7 +140,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: ramQuery.isLoading,
     },
     {
-      type: 'gpu' as ComponentType,
+      type: 'gpu',
       label: 'Graphics Card',
       modalTitle: 'Select a Graphics Card (GPU)',
       icon: <TvIcon fontSize="medium" />,
@@ -156,7 +149,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: gpusQuery.isLoading,
     },
     {
-      type: 'psu' as ComponentType,
+      type: 'psu',
       label: 'Power Supply',
       modalTitle: 'Select a Power Supply (PSU)',
       icon: <PowerIcon fontSize="medium" />,
@@ -165,7 +158,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: psusQuery.isLoading,
     },
     {
-      type: 'case' as ComponentType,
+      type: 'case',
       label: 'PC Case',
       modalTitle: 'Select a PC Case',
       icon: <ComputerIcon fontSize="medium" />,
@@ -174,7 +167,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: casesQuery.isLoading,
     },
     {
-      type: 'cooler' as ComponentType,
+      type: 'cooler',
       label: 'CPU Cooler',
       modalTitle: 'Select a CPU Cooler',
       icon: <AcUnitIcon fontSize="medium" />,
@@ -183,7 +176,7 @@ export const BuilderPage: React.FC = () => {
       isLoading: coolersQuery.isLoading,
     },
     {
-      type: 'storage' as ComponentType,
+      type: 'storage',
       label: 'Storage Drive',
       modalTitle: 'Select Storage (SSD / HDD)',
       icon: <StorageIcon fontSize="medium" />,
@@ -193,50 +186,22 @@ export const BuilderPage: React.FC = () => {
     },
   ];
 
-  // Active slot config for modal
   const currentActiveConfig = slotConfigs.find((c) => c.type === activeModal);
 
-  // Store actions helpers
   const handleSelect = (type: ComponentType, item: ComponentBase) => {
-    if (typeof store.setComponent === 'function') {
-      store.setComponent(type, item as any);
-    } else {
-      const setterName = `set${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      if (typeof (store as any)[setterName] === 'function') {
-        (store as any)[setterName](item);
-      }
-    }
+    store.setComponent(type, item as any);
   };
 
   const handleRemove = (type: ComponentType) => {
-    if (typeof store.removeComponent === 'function') {
-      store.removeComponent(type);
-    } else {
-      const removerName = `remove${type.charAt(0).toUpperCase() + type.slice(1)}`;
-      if (typeof (store as any)[removerName] === 'function') {
-        (store as any)[removerName]();
-      } else {
-        const setterName = `set${type.charAt(0).toUpperCase() + type.slice(1)}`;
-        if (typeof (store as any)[setterName] === 'function') {
-          (store as any)[setterName](null);
-        }
-      }
-    }
+    store.removeComponent(type);
   };
 
   const handleClearBuild = () => {
-    if (typeof store.clearBuild === 'function') {
-      store.clearBuild();
-    } else {
-      slotConfigs.forEach((slot) => handleRemove(slot.type));
-    }
+    store.clearBuild();
     validateBuildMutation.reset();
   };
 
-  // Total price calculation
-  const totalPrice = typeof store.getTotalPrice === 'function'
-    ? store.getTotalPrice()
-    : slotConfigs.reduce((sum, slot) => sum + (Number(slot.component?.price) || 0), 0);
+  const totalPrice = store.getTotalPrice();
 
   const formattedTotalPrice = Number(totalPrice || 0).toLocaleString(undefined, {
     minimumFractionDigits: 2,
@@ -246,22 +211,20 @@ export const BuilderPage: React.FC = () => {
   const selectedCount = slotConfigs.filter((s) => s.component !== null).length;
 
   const handleValidateBuild = () => {
-    if (!cpu || !motherboard || !ram || !pcCase || !psu) {
-      // Still trigger mutation with present ids or let backend validate
-    }
-
     validateBuildMutation.mutate({
-      cpu_id: cpu?.id,
-      motherboard_id: motherboard?.id,
-      ram_id: ram?.id,
+      cpu_id: cpu?.id as number,
+      motherboard_id: motherboard?.id as number,
+      ram_id: ram?.id as number,
       gpu_id: gpu?.id ?? null,
-      case_id: pcCase?.id,
-      psu_id: psu?.id,
+      case_id: pcCase?.id as number,
+      psu_id: psu?.id as number,
       cooler_id: cooler?.id ?? null,
-    } as any);
+      storage_id: storage?.id ?? null,
+    });
   };
 
   const report = validateBuildMutation.data;
+  const isReadyToValidate = !!(cpu && motherboard && ram && pcCase && psu);
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
@@ -275,7 +238,6 @@ export const BuilderPage: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        {/* Left Area: 8 Component Slot Cards & Validation Section */}
         <Grid size={{ xs: 12, lg: 8 }}>
           <Grid container spacing={2}>
             {slotConfigs.map((slot) => (
@@ -291,7 +253,6 @@ export const BuilderPage: React.FC = () => {
             ))}
           </Grid>
 
-          {/* Validation Action and Feedback */}
           <Paper
             elevation={2}
             sx={{
@@ -316,7 +277,7 @@ export const BuilderPage: React.FC = () => {
                 size="large"
                 color="primary"
                 onClick={handleValidateBuild}
-                disabled={validateBuildMutation.isPending || !cpu || !motherboard || !ram || !pcCase || !psu}
+                disabled={validateBuildMutation.isPending || !isReadyToValidate}
                 startIcon={
                   validateBuildMutation.isPending ? (
                     <CircularProgress size={20} color="inherit" />
@@ -335,14 +296,12 @@ export const BuilderPage: React.FC = () => {
               </Button>
             </Box>
 
-            {/* Validation Mutation Error */}
             {validateBuildMutation.isError && (
               <Alert severity="error" variant="filled" sx={{ mt: 2.5, borderRadius: 2 }}>
                 <AlertTitle>Validation Failed</AlertTitle>
                 {(() => {
                   const detail = (validateBuildMutation.error as any)?.response?.data?.detail;
                   if (Array.isArray(detail)) {
-                    // Pydantic 422 validation error
                     return detail.map((err, i) => <div key={i}>{err.msg}</div>);
                   }
                   if (typeof detail === 'string') {
@@ -353,7 +312,6 @@ export const BuilderPage: React.FC = () => {
               </Alert>
             )}
 
-            {/* Compatibility Report Feedback */}
             {report && (
               <Stack spacing={2} sx={{ mt: 2.5 }}>
                 {report.is_compatible && (!report.errors || report.errors.length === 0) && (
@@ -397,7 +355,6 @@ export const BuilderPage: React.FC = () => {
           </Paper>
         </Grid>
 
-        {/* Right Area: Build Summary Panel */}
         <Grid size={{ xs: 12, lg: 4 }}>
           <Card
             elevation={2}
@@ -485,7 +442,7 @@ export const BuilderPage: React.FC = () => {
                   color="primary"
                   size="large"
                   onClick={handleValidateBuild}
-                  disabled={validateBuildMutation.isPending || !cpu || !motherboard || !ram || !pcCase || !psu}
+                  disabled={validateBuildMutation.isPending || !isReadyToValidate}
                   startIcon={
                     validateBuildMutation.isPending ? (
                       <CircularProgress size={20} color="inherit" />

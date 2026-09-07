@@ -40,7 +40,7 @@ export const checkComponentCompatibility = (
         }
         if (currentBuild.storage) {
             hasCondition = true;
-            const isM2 = currentBuild.storage.form_factor.includes("M.2");
+            const isM2 = currentBuild.storage.form_factor?.includes("M.2") ?? false;
             if (isM2 && item.m2_slots === 0) isValid = false;
             if (!isM2 && item.sata_ports === 0) isValid = false;
         }
@@ -82,7 +82,7 @@ export const checkComponentCompatibility = (
     }
     if (cat === 'STORAGE') {
         if (currentBuild.motherboard) {
-            const isM2 = item.form_factor.includes("M.2");
+            const isM2 = item.form_factor?.includes("M.2") ?? false;
             if (isM2 && currentBuild.motherboard.m2_slots === 0) return 'INCOMPATIBLE';
             if (!isM2 && currentBuild.motherboard.sata_ports === 0) return 'INCOMPATIBLE';
             return 'COMPATIBLE';
