@@ -207,3 +207,14 @@ export interface SSDRecommendParams {
   budget?: number;
   use_case?: string;
 }
+
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface ChatResponse {
+  message: string;
+  suggested_build?: Record<string, number | null>;
+}
+

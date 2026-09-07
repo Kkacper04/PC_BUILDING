@@ -23,10 +23,6 @@ import type {
   SSDRecommendParams,
 } from '../types/api';
 
-// ----------------------------------------------------------------------
-// API Fetch Functions
-// ----------------------------------------------------------------------
-
 export const fetchCPUs = async (params?: CPUQueryParams): Promise<CPUResponse[]> => {
   const response = await apiClient.get<CPUResponse[]>('/cpus', { params });
   return response.data;
@@ -116,10 +112,6 @@ export const fetchSSDRecommendation = async (params?: SSDRecommendParams): Promi
   const response = await apiClient.get<SSDRecommendation>('/build/recommend-ssd', { params });
   return response.data;
 };
-
-// ----------------------------------------------------------------------
-// React Query Hooks
-// ----------------------------------------------------------------------
 
 export const useCPUs = (
   params?: CPUQueryParams,
@@ -324,3 +316,20 @@ export const useSSDRecommendation = (
     ...options,
   });
 };
+
+import type { ChatMessage, ChatResponse } from '../types/api';
+
+export const chatWithAi = async (messages: ChatMessage[]): Promise<ChatResponse> => {
+  const { data } = await apiClient.post<ChatResponse>('/api/v1/ai/chat', { messages });
+  return data;
+};
+
+export const useChatMutation = (
+  options?: Omit<UseMutationOptions<ChatResponse, Error, ChatMessage[]>, 'mutationFn'>
+) => {
+  return useMutation<ChatResponse, Error, ChatMessage[]>({
+    mutationFn: chatWithAi,
+    ...options,
+  });
+};
+

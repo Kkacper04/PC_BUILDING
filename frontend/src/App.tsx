@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme, CssBaseline, Box } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Header from './components/Header';
 import BuilderPage from './pages/BuilderPage';
+import { AiChatWidget } from './components/AiChatWidget';
 
 const darkTheme = createTheme({
   palette: {
@@ -56,6 +57,7 @@ export const App: React.FC = () => {
                 <Route path="/" element={<BuilderPage />} />
               </Routes>
             </Box>
+            <AiChatWidget />
           </Box>
         </BrowserRouter>
       </ThemeProvider>
