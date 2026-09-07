@@ -1,12 +1,12 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Literal
 
 class ChatMessage(BaseModel):
-    role: str
-    content: str
+    role: Literal["user", "assistant"] = Field(..., description="Message role")
+    content: str = Field(..., min_length=1, max_length=4000)
 
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
+    messages: List[ChatMessage] = Field(..., min_length=1)
 
 class ChatResponse(BaseModel):
     message: str

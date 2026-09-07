@@ -13,7 +13,7 @@ export interface CPUResponse extends ComponentBase {
   threads: number;
   base_clock_mhz: number;
   boost_clock_mhz: number;
-  tdp: number;
+  tdp: number | null;
   l3_cache_mb: number | null;
   supports_ddr4: boolean;
   supports_ddr5: boolean;
@@ -62,9 +62,9 @@ export interface RAMResponse extends ComponentBase {
 
 export interface PSUResponse extends ComponentBase {
   wattage: number;
-  efficiency_rating: string;
-  modular_type: string;
-  form_factor: string;
+  efficiency_rating: string | null;
+  modular_type: string | null;
+  form_factor: string | null;
   pcie_8pin_connectors: number;
   has_12vhpwr: boolean;
   num_12vhpwr: number;
@@ -81,13 +81,13 @@ export interface CaseResponse extends ComponentBase {
   length_mm: number | null;
   has_tempered_glass: boolean;
   front_io_usb_c: boolean;
-  psu_form_factor: string;
+  psu_form_factor: string | null;
 }
 
 export interface StorageResponse extends ComponentBase {
   storage_type: string;
-  form_factor: string;
-  interface: string;
+  form_factor: string | null;
+  interface: string | null;
   capacity_gb: number;
   read_speed_mbps: number | null;
   write_speed_mbps: number | null;
@@ -101,7 +101,7 @@ export interface CPUCoolerResponse extends ComponentBase {
   radiator_size_mm: number | null;
   fan_count: number;
   fan_size_mm: number | null;
-  max_tdp: number;
+  max_tdp: number | null;
   max_noise_dba: number | null;
   has_rgb: boolean;
 }
@@ -114,6 +114,8 @@ export interface BuildValidationRequest {
   case_id: number;
   psu_id: number;
   cooler_id?: number | null;
+  storage_id?: number | null;
+  ram_quantity?: number;
 }
 
 export interface CompatibilityReport {
