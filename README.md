@@ -13,11 +13,11 @@ A full-stack web application designed to help users build custom PCs. The platfo
 
 ## Screenshots
 
-<details>
+<details open>
   <summary>Click to view screenshots</summary>
   
-  **Main PC Builder View**  
-  ![Main Builder View](docs/screenshots/main_view.png)
+  **Main PC Builder View & AI Agent**  
+  ![Main Builder View](docs/screenshot.png)
   
   **Component Selection**  
   ![Component Selection](docs/screenshots/selection_modal.png)
