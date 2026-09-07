@@ -1,23 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import {
-  Dialog,
-  AppBar,
-  Toolbar,
-  IconButton,
-  Typography,
-  Slide,
-  Box,
-  Container,
-  TextField,
-  InputAdornment,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Chip,
-  Skeleton,
-} from "@mui/material";
+import {Dialog, AppBar,Toolbar,IconButton,Typography, Slide, Box, Container,TextField,InputAdornment,Grid, Card,CardContent,CardActions, Button,Chip,Skeleton,} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
@@ -182,7 +164,17 @@ export const SelectionModal: React.FC<SelectionModalProps> = ({
         {!isLoading && filteredItems.length > 0 && (
           <Grid container spacing={3}>
             {filteredItems.map((item) => {
-              const categoryName = title.split(' ').pop() || '';
+              const titleUpper = title.toUpperCase();
+              let categoryName = 'UNKNOWN';
+              if (titleUpper.includes('MOTHERBOARD')) categoryName = 'MOTHERBOARD';
+              else if (titleUpper.includes('COOLER')) categoryName = 'COOLER';
+              else if (titleUpper.includes('CPU')) categoryName = 'CPU'; 
+              else if (titleUpper.includes('RAM')) categoryName = 'RAM';
+              else if (titleUpper.includes('GPU')) categoryName = 'GPU';
+              else if (titleUpper.includes('CASE')) categoryName = 'CASE';
+              else if (titleUpper.includes('STORAGE') || titleUpper.includes('SSD')) categoryName = 'STORAGE';
+              else if (titleUpper.includes('POWER SUPPLY') || titleUpper.includes('PSU')) categoryName = 'PSU';
+              
               const status = checkComponentCompatibility(item, categoryName, currentBuild);
               const isCompatible = status === 'COMPATIBLE';
               const isIncompatible = status === 'INCOMPATIBLE';
