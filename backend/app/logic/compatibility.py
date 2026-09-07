@@ -3,7 +3,6 @@ from app.models.components import CPU, Motherboard, RAM, GPU, Case, PSU, CPUCool
 from app.models.enums import FormFactor, StorageFormFactor
 
 
-# Form factor size hierarchy (larger index = physically larger board)
 _FF_SIZE = {
     FormFactor.MINI_ITX: 0,
     FormFactor.MICRO_ATX: 1,
@@ -72,6 +71,9 @@ class CompatibilityChecker:
     
     # GPU must physically fit inside the Case
     def check_gpu_case(self, gpu: GPU, pc_case: Case) -> bool:
+        if gpu.length_mm is None or pc_case.max_gpu_length_mm is None:
+            self.warnings.append("Cannot verify GPU-Case clearance: missing dimension data.")
+            return True
         if gpu.length_mm <= pc_case.max_gpu_length_mm:
             return True
         self.errors.append(
@@ -131,7 +133,7 @@ class CompatibilityChecker:
         # Use DB relation if available — with hierarchical check (smaller always fits)
         if pc_case.supported_form_factors:
             supported = [supp.form_factor for supp in pc_case.supported_form_factors]
-            max_supported_size = max(_FF_SIZE.get(s, 0) for s in supported)
+            max_supported_size = max((_FF_SIZE.get(s, 0) for s in supported), default=0)
             if mobo_size <= max_supported_size:
                 return True
             else:
@@ -249,18 +251,18 @@ class CompatibilityChecker:
         is_compatible = True
 
         if gpu.pcie_power_12vhpwr and gpu.pcie_power_12vhpwr > 0:
-            if not psu.has_12vhpwr or psu.num_12vhpwr < gpu.pcie_power_12vhpwr:
+            if not psu.has_12vhpwr or (psu.num_12vhpwr or 0) < gpu.pcie_power_12vhpwr:
                 self.errors.append(
                     f"GPU requires {gpu.pcie_power_12vhpwr} 12VHPWR connector(s), "
-                    f"but PSU has {psu.num_12vhpwr}."
+                    f"but PSU has {psu.num_12vhpwr or 0}."
                 )
                 is_compatible = False
 
         if gpu.pcie_power_8pin and gpu.pcie_power_8pin > 0:
-            if psu.pcie_8pin_connectors < gpu.pcie_power_8pin:
+            if (psu.pcie_8pin_connectors or 0) < gpu.pcie_power_8pin:
                 self.errors.append(
                     f"GPU requires {gpu.pcie_power_8pin} PCIe 8-pin connector(s), "
-                    f"but PSU only has {psu.pcie_8pin_connectors}."
+                    f"but PSU only has {psu.pcie_8pin_connectors or 0}."
                 )
                 is_compatible = False
 
@@ -268,7 +270,7 @@ class CompatibilityChecker:
 
     
 
-    # 1. Missing Video Output Check
+   
     def check_display_output(self, cpu: CPU, gpu: Optional[GPU]) -> bool:
         if gpu is not None:
             return True
@@ -282,7 +284,7 @@ class CompatibilityChecker:
         )
         return False
 
-    # 2. Storage vs Motherboard
+   
     def check_storage_motherboard(self, storage: Storage, mobo: Motherboard) -> bool:
         is_compatible = True
         

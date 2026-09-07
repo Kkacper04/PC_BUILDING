@@ -1,6 +1,7 @@
 import os
 import json
 import re
+import asyncio
 from typing import List, Dict, Any, Optional
 from openai import AsyncOpenAI
 from sqlalchemy.orm import Session
@@ -15,7 +16,7 @@ AI_MODEL_NAME = os.getenv("AI_MODEL_NAME", "llama3.1")
 
 client = AsyncOpenAI(
     base_url=AI_BASE_URL,
-    api_key=" local-dev-key" #sth random 
+    api_key="local-dev-key"
 )
 
 SYSTEM_PROMPT = """You are an elite, highly professional PC Hardware Consultant. Your goal is to design optimal, custom PC builds tailored exactly to the user's budget and specific use-cases (e.g., gaming, video editing, programming).
@@ -65,9 +66,13 @@ def execute_get_components(db: Session, category: str, max_price: Optional[float
         
     model = model_map[category]
     stmt = select(model)
-    if max_price:
-        stmt = stmt.where(model.price <= max_price)
-    stmt = stmt.order_by(model.price.desc()).limit(15)
+    if max_price is not None:
+        try:
+            max_price = float(max_price)
+            stmt = stmt.where(model.price <= max_price)
+        except (ValueError, TypeError):
+            pass
+    stmt = stmt.order_by(model.price.asc()).limit(20)
     
     results = db.execute(stmt).scalars().all()
     
@@ -76,16 +81,39 @@ def execute_get_components(db: Session, category: str, max_price: Optional[float
         comp = {
             "id": r.id,
             "name": r.name,
-            "price": float(r.price)
+            "price": float(r.price) if r.price else 0
         }
         if category == "cpu":
             comp["socket"] = r.socket
             comp["tdp"] = r.tdp
+            comp["cores"] = r.cores
         elif category == "gpu":
             comp["vram_gb"] = r.vram_gb
+            comp["tdp"] = r.tdp
+            comp["length_mm"] = r.length_mm
         elif category == "motherboard":
             comp["socket"] = r.socket
             comp["form_factor"] = r.form_factor
+            comp["ddr_generation"] = r.ddr_generation
+            comp["chipset"] = r.chipset
+        elif category == "ram":
+            comp["ddr_generation"] = r.ddr_generation
+            comp["speed_mhz"] = r.speed_mhz
+            comp["total_capacity_gb"] = r.total_capacity_gb
+        elif category == "psu":
+            comp["wattage"] = r.wattage
+            comp["efficiency_rating"] = r.efficiency_rating
+            comp["modular_type"] = r.modular_type
+        elif category == "case":
+            comp["case_type"] = getattr(r, 'case_type', None)
+            comp["max_gpu_length_mm"] = r.max_gpu_length_mm
+        elif category == "cooler":
+            comp["cooler_type"] = r.cooler_type
+            comp["max_tdp"] = r.max_tdp
+        elif category == "storage":
+            comp["storage_type"] = r.storage_type
+            comp["capacity_gb"] = r.capacity_gb
+            comp["interface"] = getattr(r, 'interface', None)
             
         components.append(comp)
         
@@ -115,30 +143,45 @@ TOOLS: List[Any] = [
     }
 ]
 
+MAX_TOOL_ITERATIONS = 8
+
 async def process_chat(db: Session, messages: List[Dict[str, str]]) -> Dict[str, Any]:
-    # Prepare messages
     api_messages: List[Any] = [{"role": "system", "content": SYSTEM_PROMPT}]
     for msg in messages:
         api_messages.append({"role": msg["role"], "content": msg["content"]})
         
-    # Call LLM
-    response = await client.chat.completions.create(
-        model=AI_MODEL_NAME,
-        messages=api_messages,
-        tools=TOOLS,
-        temperature=0.7
-    )
+    try:
+        response = await client.chat.completions.create(
+            model=AI_MODEL_NAME,
+            messages=api_messages,
+            tools=TOOLS,
+            temperature=0.7,
+            timeout=90.0,
+        )
+    except Exception:
+        return {
+            "message": "AI service is currently unavailable. Please try again later.",
+            "suggested_build": None
+        }
+    
+    if not response.choices:
+        return {"message": "AI returned an empty response. Please try again.", "suggested_build": None}
     
     response_message = response.choices[0].message
     
-    # Handle tool calls if any
-    while response_message.tool_calls:
+    iteration = 0
+    while response_message.tool_calls and iteration < MAX_TOOL_ITERATIONS:
+        iteration += 1
         api_messages.append(response_message.model_dump(exclude_none=True))
         
         for tool_call in response_message.tool_calls:
-            # Use getattr or type ignore to bypass Pylance union issues
             func = getattr(tool_call, "function", None)
             if not func:
+                api_messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps({"error": "Unknown function"})
+                })
                 continue
                 
             if func.name == "get_components_by_category":
@@ -146,7 +189,7 @@ async def process_chat(db: Session, messages: List[Dict[str, str]]) -> Dict[str,
                     args = json.loads(func.arguments)
                     cat = args.get("category")
                     max_p = args.get("max_price")
-                    tool_result = execute_get_components(db, cat, max_p)
+                    tool_result = await asyncio.to_thread(execute_get_components, db, cat, max_p)
                 except Exception as e:
                     tool_result = json.dumps({"error": str(e)})
                     
@@ -156,27 +199,43 @@ async def process_chat(db: Session, messages: List[Dict[str, str]]) -> Dict[str,
                     "name": func.name,
                     "content": tool_result
                 })
+            else:
+                api_messages.append({
+                    "role": "tool",
+                    "tool_call_id": tool_call.id,
+                    "content": json.dumps({"error": f"Unknown tool: {func.name}"})
+                })
                 
-        # Call LLM again with tool results
-        response = await client.chat.completions.create(
-            model=AI_MODEL_NAME,
-            messages=api_messages,
-            tools=TOOLS,
-            temperature=0.7
-        )
+        try:
+            response = await client.chat.completions.create(
+                model=AI_MODEL_NAME,
+                messages=api_messages,
+                tools=TOOLS,
+                temperature=0.7,
+                timeout=90.0,
+            )
+        except Exception:
+            return {
+                "message": "AI service timed out during tool processing. Please try again.",
+                "suggested_build": None
+            }
+            
+        if not response.choices:
+            break
+            
         response_message = response.choices[0].message
 
     final_content = response_message.content or ""
     
-    # Extract JSON block if present
     suggested_build = None
     json_match = re.search(r'```json\s*(\{.*?\})\s*```', final_content, re.DOTALL)
+    if not json_match:
+        json_match = re.search(r'(\{[^{}]*"suggested_build"[^{}]*\{[^{}]*\}[^{}]*\})', final_content, re.DOTALL)
     if json_match:
         try:
             parsed = json.loads(json_match.group(1))
             if "suggested_build" in parsed:
                 suggested_build = parsed["suggested_build"]
-            # Clean up the message by removing the JSON block so the user doesn't see it
             final_content = re.sub(r'```json\s*(\{.*?\})\s*```', '', final_content, flags=re.DOTALL).strip()
         except Exception:
             pass
