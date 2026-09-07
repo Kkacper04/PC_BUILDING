@@ -38,7 +38,7 @@ export const AiChatWidget: React.FC = () => {
     }
   });
 
-  // Auto-scroll to bottom
+ 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -52,8 +52,12 @@ export const AiChatWidget: React.FC = () => {
     addMessage(userMsg);
     setInputValue('');
 
-    // Filter out system messages (action buttons) before sending to API
-    const payload = messages.filter(m => m.role !== 'system').concat(userMsg);
+  
+    const welcomeMsgPrefix = 'Welcome to the PC Builder';
+    const payload = messages
+      .filter(m => m.role !== 'system')
+      .filter(m => !(m.role === 'assistant' && m.content.startsWith(welcomeMsgPrefix)))
+      .concat(userMsg);
     chatMutation.mutate(payload);
   };
 
@@ -69,14 +73,14 @@ export const AiChatWidget: React.FC = () => {
       const build = JSON.parse(buildStr) as Record<string, number | null>;
       
       const promises = [];
-      if (build.cpu) promises.push(fetchCPU(build.cpu).then(c => setComponent('cpu', c)));
-      if (build.gpu) promises.push(fetchGPU(build.gpu).then(c => setComponent('gpu', c)));
-      if (build.motherboard) promises.push(fetchMotherboard(build.motherboard).then(c => setComponent('motherboard', c)));
-      if (build.ram) promises.push(fetchRAMItem(build.ram).then(c => setComponent('ram', c)));
-      if (build.psu) promises.push(fetchPSU(build.psu).then(c => setComponent('psu', c)));
-      if (build.case) promises.push(fetchCase(build.case).then(c => setComponent('case', c)));
-      if (build.cooler) promises.push(fetchCooler(build.cooler).then(c => setComponent('cooler', c)));
-      if (build.storage) promises.push(fetchStorageItem(build.storage).then(c => setComponent('storage', c)));
+      if (build.cpu) promises.push(fetchCPU(build.cpu).then(c => setComponent('cpu', c)).catch(e => console.warn(e)));
+      if (build.gpu) promises.push(fetchGPU(build.gpu).then(c => setComponent('gpu', c)).catch(e => console.warn(e)));
+      if (build.motherboard) promises.push(fetchMotherboard(build.motherboard).then(c => setComponent('motherboard', c)).catch(e => console.warn(e)));
+      if (build.ram) promises.push(fetchRAMItem(build.ram).then(c => setComponent('ram', c)).catch(e => console.warn(e)));
+      if (build.psu) promises.push(fetchPSU(build.psu).then(c => setComponent('psu', c)).catch(e => console.warn(e)));
+      if (build.case) promises.push(fetchCase(build.case).then(c => setComponent('case', c)).catch(e => console.warn(e)));
+      if (build.cooler) promises.push(fetchCooler(build.cooler).then(c => setComponent('cooler', c)).catch(e => console.warn(e)));
+      if (build.storage) promises.push(fetchStorageItem(build.storage).then(c => setComponent('storage', c)).catch(e => console.warn(e)));
 
       await Promise.all(promises);
     } catch (err) {

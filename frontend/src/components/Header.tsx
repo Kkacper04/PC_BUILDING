@@ -1,6 +1,5 @@
 import React from 'react';
 import { AppBar, Toolbar, Typography, Chip, Box } from '@mui/material';
-import BuildIcon from '@mui/icons-material/Build';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import { useBuildStore } from '../store/buildStore';
 
@@ -23,7 +22,6 @@ export const Header: React.FC = () => {
     >
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <BuildIcon sx={{ color: '#3f8cff', fontSize: 28 }} />
           <Typography
             variant="h6"
             component="div"
